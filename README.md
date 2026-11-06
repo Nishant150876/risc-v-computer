@@ -11,4 +11,4 @@ skeleton, a one-command test runner, and scripted Vivado builds.
 their gates, design decisions, memory map, repo layout and testing strategy.
 
 Earlier work (the Week 1 LED blink demo and the original roadmap) is still in
-the git history before this commit.
+the git history (commit 9341a22 and earlier).
