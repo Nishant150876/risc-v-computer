@@ -7,10 +7,10 @@ memory, its peripherals, the debug hardware the Tab5 talks to, and the board's t
 this page to find where a module belongs and which rules it must follow.
 
 > [!NOTE]
-> **Status: 🚧 IN PROGRESS.** Two Phase 0 modules are implemented and pass in simulation:
-> [core/counter.sv](core/counter.sv) and [top/basys3_top.sv](top/basys3_top.sv). The blink top
-> level was also built with Vivado and runs on the board. CPU, memory, peripherals and debug RTL
-> remain **PLANNED**, as described by the [build plan](../docs/BUILD_PLAN.md) and
+> **Status: 🚧 IN PROGRESS.** The Phase 0 counter/blink and Phase 1 package/CPU blocks are
+> implemented and locally tested. The blink top was also rebuilt successfully with Vivado.
+> Phase 1's CI gate is pending. CPU integration, memory, peripherals and debug RTL remain
+> **PLANNED**, as described by the [build plan](../docs/BUILD_PLAN.md) and
 > [integration architecture](../docs/TAB5_INTEGRATION.md). Status labels are defined in the
 > [root README](../README.md#2-project-status).
 
@@ -56,9 +56,15 @@ debug hardware the Tab5 talks to, and the board's top level.
 | --- | --- | --- |
 | [core/counter.sv](core/counter.sv) | Four-bit counter that checks the simulation workflow: active-high synchronous reset, incrementing, wraparound and restart. | [tb/counter_tb.sv](../tb/counter_tb.sv), 25 checks ([smoke-test record](../docs/PHASE0_SMOKE_TEST.md)) |
 | [top/basys3_top.sv](top/basys3_top.sv) | Phase 0 blink. The 16 LEDs show a binary count; with the default `DIV_BITS = 24` and the 100 MHz clock, LED 0 blinks at about 3 Hz. The center button (`btnC`) is reset, through a two-flop synchronizer. | [tb/basys3_top_tb.sv](../tb/basys3_top_tb.sv); built with `scripts/build.tcl` and programmed on the board |
+| [core/rv32i_pkg.sv](core/rv32i_pkg.sv) | Shared instruction encodings, typed selectors, control record and safe defaults. | Used throughout the five CPU-block benches |
+| [core/alu.sv](core/alu.sv) | Ten 32-bit integer operations, signed comparisons and five-bit shift counts. | [tb/alu_tb.sv](../tb/alu_tb.sv), 11,709 checks |
+| [core/regfile.sv](core/regfile.sv) | Two asynchronous reads, one synchronous write, immutable x0, optional bypass, synchronous reset. | [tb/regfile_tb.sv](../tb/regfile_tb.sv), 6,140 check groups |
+| [core/imm_gen.sv](core/imm_gen.sv) | I/S/B/U/J immediate assembly and extension. | [tb/imm_gen_tb.sv](../tb/imm_gen_tb.sv), 10,343 checks |
+| [core/decoder.sv](core/decoder.sv) | Full controls for 40 base instructions; unsupported encodings have no side effects. | [tb/decoder_tb.sv](../tb/decoder_tb.sv), 133,700 checks |
+| [core/branch_unit.sv](core/branch_unit.sv) | Six signed/unsigned branch predicates; NONE disables branching. | [tb/branch_unit_tb.sv](../tb/branch_unit_tb.sv), 8,522 checks |
 
-To run both tests, use `python3 scripts/run_tests.py` in WSL. In Cursor's **WSL: Ubuntu**
-window, **Ctrl+Shift+B** builds and runs just the counter test.
+To run all seven benches, use `python3 scripts/run_tests.py` in WSL or **Ctrl+Shift+B** in
+Cursor's **WSL: Ubuntu** window. See [Phase 1 interfaces and evidence](../docs/PHASE1_CORE_BLOCKS.md).
 
 > [!NOTE]
 > `scripts/run_tests.py` and `scripts/build.tcl` compile **every** `rtl/**/*.sv` file, with
@@ -71,7 +77,7 @@ window, **Ctrl+Shift+B** builds and runs just the counter test.
 
 | Folder | Contents (planned unless marked implemented) | Built in |
 | --- | --- | --- |
-| [`core/`](core/) | **Implemented:** `counter.sv` smoke module. **Planned:** `rv32i_pkg.sv` shared types, `alu.sv`, `regfile.sv`, `imm_gen.sv`, `decoder.sv`, `branch_unit.sv`, `lsu.sv`, `cpu_single.sv`, later `cpu_pipe.sv`, `forward.sv`, `hazard.sv` | Counter: Phase 0; CPU: Phases 1, 2, 5 |
+| [`core/`](core/) | **Implemented:** `counter.sv`, `rv32i_pkg.sv`, `alu.sv`, `regfile.sv`, `imm_gen.sv`, `decoder.sv`, `branch_unit.sv`. **Planned:** `lsu.sv`, `cpu_single.sv`, later `cpu_pipe.sv`, `forward.sv`, `hazard.sv` | Counter: Phase 0; blocks: Phase 1; integration: Phases 2, 5 |
 | [`mem/`](mem/) | `ram.sv`: 64 KiB dual-port block RAM with byte-write enables, loaded with `$readmemh`; optional 2 KiB boot ROM | Phases 2, 4 |
 | [`io/`](io/) | `bus.sv` address decoder, `board_io.sv` (LEDs, switches, buttons, 7-segment), `uart_tx.sv`, `uart_rx.sv`, `vga_timing.sv` and the VGA text/pixel path | Phases 3, 4, 6 |
 | [`debug/`](debug/) | Packet engine, debug-only Wishbone master and slaves, RAM ownership adapter, CPU execution control, breakpoints, snapshots, retirement trace | T2–T8 |
@@ -113,7 +119,7 @@ flowchart TD
 
 ## 5. The CPU core, block by block
 
-| Block | Job | Planned test |
+| Block | Job | Test (implemented for Phase 1 blocks) |
 | --- | --- | --- |
 | `rv32i_pkg` | Opcodes, the ALU operation list and the control-signal struct, shared by every module | Used by all benches |
 | `alu` | ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU | Tricky values (0, −1, largest/smallest numbers, shifts of 31 and 32) plus 1,000 random inputs per operation against a reference model |
@@ -124,6 +130,8 @@ flowchart TD
 | `lsu` | Byte, halfword and word accesses; store byte enables; load sign/zero extension; misaligned access stops with a documented error | Alignment contract tested explicitly |
 
 ### Single-cycle datapath
+
+This integration is planned for Phase 2; the unit-tested blocks are not yet a connected CPU.
 
 The diagram shows one instruction's path through the single-cycle CPU, from the PC back to the
 next PC.
@@ -241,4 +249,4 @@ From [AGENTS.md](../AGENTS.md):
 | Pins and timing constraints | [fpga/README.md](../fpga/README.md) |
 | Debug and diagnostic contracts | [TAB5_INTEGRATION.md](../docs/TAB5_INTEGRATION.md) |
 | Software that drives these devices | [sw/README.md](../sw/README.md) |
-| The next module to write | [Phase 1 in the build plan](../docs/BUILD_PLAN.md#phase-1-building-blocks) |
+| Implemented interfaces and verification | [Phase 1 record](../docs/PHASE1_CORE_BLOCKS.md) |

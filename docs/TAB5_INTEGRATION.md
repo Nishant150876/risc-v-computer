@@ -93,12 +93,13 @@ What exists in the repository now, and how each piece is reused (updated Novembe
 | Component | Present now | Reuse / integration decision |
 | --- | --- | --- |
 | CPU, pipeline, retirement port | No | Define the retirement/debug boundary before wiring Phase 2; implement the CPU in the original order. |
+| CPU building blocks | Phase 1 package, ALU, register file, immediates, decoder and branch unit; local tests pass, CI gate pending | [Interfaces and evidence](PHASE1_CORE_BLOCKS.md). Preserve the single register writer and explicit ALU operands when later adding owned test access. |
 | RAM and CPU bus | No | Keep the planned native CPU ports and CPU address map; add a separate debug adapter and ownership protocol. |
 | UART | No | Implement/test the reusable UART blocks in Phase 4; instantiate a separate debug endpoint, not a second incompatible UART design. |
 | Top, MMCM, reset, XDC | Phase 0 blink only: `basys3_top.sv` with a synchronized reset button, and an XDC for clock, center button and LEDs. No MMCM. | Add debug connections only after the documented electrical gate. CPU reset must not reset the transport. |
-| Tests, scripts, CI, C runtime | Counter and blink benches, `run_tests.py`, `build.tcl`, `program.tcl` and GitHub Actions CI. C runtime pending. | [Phase 0 evidence](BUILD_PLAN.md#phase-0-fresh-start). Extend the runner for debug/diagnostic benches; it already discovers every `tb/**/*_tb.sv`. |
+| Tests, scripts, CI, C runtime | Seven local passing benches, `run_tests.py`, `build.tcl`, `program.tcl` and the existing GitHub Actions workflow. Phase 1 CI run and C runtime pending. | Extend the runner for debug/diagnostic benches; it already discovers every `tb/**/*_tb.sv`. |
 | Tab5 firmware / host client | No | New modular firmware and Python reference client; share the protocol specification and vectors. |
-| Existing content | Skeleton, instructions, plan, three diagrams, the Phase 0 flow | Preserve it. Historical blink source at `9341a22` is reference material, not current validated RTL. |
+| Existing content | Skeleton, instructions, plan, three diagrams, Phase 0 flow and Phase 1 blocks | Preserve it. Historical blink source at `9341a22` is reference material, not current validated RTL. |
 
 > [!WARNING]
 > There is no existing Wishbone implementation to preserve or replace. Do not claim the native
@@ -720,9 +721,10 @@ Each original phase must leave a seam that the debug work can attach to later:
 All capabilities remain hidden/disabled in the UI until the matching FPGA capability and
 verification gate exist.
 
-**Next step:** Phase 0 has passed, so the next implementation work is
-[Phase 1](BUILD_PLAN.md#phase-1-building-blocks). Its seam above (preserve x0, one controlled
-register writer, an owned ALU test mux) applies from the first module.
+**Next step:** [Phase 1 blocks](PHASE1_CORE_BLOCKS.md) now pass local verification; their CI
+gate remains pending. The register file preserves x0 and one controlled write port, and the
+combinational ALU has explicit operands. Owned debug/BIST adapters and test muxes remain later
+milestone work. CPU integration starts only after the Phase 1 gate passes.
 
 ---
 

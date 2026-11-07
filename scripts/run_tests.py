@@ -61,16 +61,26 @@ def find_tests(pattern: str | None) -> list[Path]:
     return tests
 
 
+DETAIL_WIDTH = 160
+
+
 def last_line(text: str) -> str:
     lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
-    return lines[-1][:100] if lines else ""
+    return lines[-1][:DETAIL_WIDTH] if lines else ""
 
 
 def first_error(text: str) -> str:
+    """Return the most useful failure line.
+
+    A failed assertion prints "[time] %Fatal: ... message" and is followed by
+    a generic "%Error: ... Verilog $stop" line, so %Fatal is searched first.
+    """
     text = text.replace(str(REPO) + os.sep, "")
-    for line in text.splitlines():
-        if line.startswith("%Error") or line.startswith("%Warning"):
-            return line.strip()[:100]
+    lines = [l.strip() for l in text.splitlines()]
+    for marker in ("%Fatal", "%Error", "%Warning"):
+        for line in lines:
+            if marker in line:
+                return line[:DETAIL_WIDTH]
     return last_line(text)
 
 
@@ -104,7 +114,7 @@ def run_one(tb: Path, build_root: Path, jobs: int, timeout: float) -> Result:
     said_pass = any(l.startswith("PASS") for l in sim.stdout.splitlines())
     if sim.returncode == 0 and said_pass:
         pass_line = next(l for l in sim.stdout.splitlines() if l.startswith("PASS"))
-        return Result(name, "PASS", elapsed, pass_line[:100], log)
+        return Result(name, "PASS", elapsed, pass_line[:DETAIL_WIDTH], log)
     if sim.returncode == 0:
         return Result(name, "FAIL", elapsed, "exited 0 but never printed PASS", log)
     return Result(name, "FAIL", elapsed,

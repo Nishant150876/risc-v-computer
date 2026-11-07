@@ -28,12 +28,14 @@ flowchart TD
     REQ --> VM["VERIFICATION_MATRIX.md<br/>requirement to proof"]
     PLAN --> VM
     PLAN --> SMOKE["PHASE0_SMOKE_TEST.md<br/>first simulation evidence"]
+    PLAN --> BLOCKS["PHASE1_CORE_BLOCKS.md<br/>interfaces and local unit-test evidence"]
 ```
 
 | Document | Kind | Read it for |
 | --- | --- | --- |
 | [BUILD_PLAN.md](BUILD_PLAN.md) | Plan | Phases 0–7 and Tab5 milestones T0–T13, every gate, design decisions, memory map, test strategy, C flow, risks, open questions. **Its checkboxes are the record of progress.** |
 | [PHASE0_SMOKE_TEST.md](PHASE0_SMOKE_TEST.md) | Simulation evidence | Working Cursor task, counter behavior, 25 passing checks, deliberate failure, observed Ubuntu tool versions and output location |
+| [PHASE1_CORE_BLOCKS.md](PHASE1_CORE_BLOCKS.md) | Interfaces and verification | Six implemented CPU-block tasks, seven local passing benches, decoder policy, register-file timing and the pending CI gate |
 | [TAB5_INTEGRATION.md](TAB5_INTEGRATION.md) | Architecture | What the FPGA and Tab5 each do, the debug-only Wishbone bus, RAM ownership, halt/step/breakpoint semantics, program loading, trace and counters, BIST and fault injection, block RAM budget |
 | [DEBUG_PROTOCOL.md](DEBUG_PROTOCOL.md) | Interface specification | Packet framing, sessions and safe retries, status codes, the command table, payload layouts, capability bits and state machines |
 | [TAB5_FIRMWARE.md](TAB5_FIRMWARE.md) | Firmware design | Framework decision, firmware modules and tasks, data-provenance labels, screens, microSD layout, reproducible builds |
@@ -97,5 +99,7 @@ easier reading, under strict limits:
 - Phase 0 evidence is in [the build plan](BUILD_PLAN.md#phase-0-fresh-start) and
   [PHASE0_SMOKE_TEST.md](PHASE0_SMOKE_TEST.md). Saved timing and utilization reports, board photos
   and CPU demo evidence remain pending.
+- Phase 1 interfaces and local results are in [PHASE1_CORE_BLOCKS.md](PHASE1_CORE_BLOCKS.md).
+  Its CI gate remains pending for the local implementation changes.
 
 **Next step:** open the [build plan](BUILD_PLAN.md).

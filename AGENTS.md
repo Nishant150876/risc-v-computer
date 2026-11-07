@@ -89,16 +89,22 @@ VGA remains an optional display track.
 - `rtl/top/basys3_top.sv` (Phase 0 blink), `tb/basys3_top_tb.sv`, and `fpga/basys3.xdc` for the
   clock, center button and 16 LEDs.
 - `scripts/run_tests.py`, `scripts/build.tcl`, `scripts/program.tcl`, and the GitHub Actions
-  workflow `.github/workflows/tests.yml`.
+  workflow `.github/workflows/tests.yml`. `scripts/synth_blocks.tcl` (Phase 1 block synthesis
+  check) exists but has not been run yet.
+- Phase 1's `rv32i_pkg.sv`, `alu.sv`, `regfile.sv`, `imm_gen.sv`, `decoder.sv`, and
+  `branch_unit.sv`, with five self-checking unit benches. All seven local tests pass;
+  see `docs/PHASE1_CORE_BLOCKS.md` for their interfaces and evidence.
 
-CPU/debug RTL, the C runtime, the full pin constraints, and Tab5 firmware are still pending. The
-next task is Phase 1, starting with `rtl/core/rv32i_pkg.sv`.
+Phase 1 has six implementation tasks complete, but its gate still requires GitHub Actions
+for the new changes. CPU integration/debug RTL, the C runtime, the full pin constraints, and
+Tab5 firmware are still pending. Do not start Phase 2 before the Phase 1 gate passes.
 
 ### Editor setup
 
 - The owner uses Cursor connected to WSL: Ubuntu.
-- The default Ctrl+Shift+B task is `Smoke: build and run counter`. Its generated simulation files
-  use Ubuntu's local `$HOME/.cache/risc-v-computer/smoke` to avoid Windows-mounted timestamp skew.
+- The default Ctrl+Shift+B task is `Tests: run all testbenches`, using the existing Python runner
+  and Ubuntu's local `$HOME/.cache/risc-v-computer/tests`. The separate counter smoke task remains
+  available through Terminal > Run Task and uses the sibling `smoke` cache.
 - Keep `.vscode/tasks.json` shared; other local editor settings stay ignored.
 
 ---
@@ -262,6 +268,7 @@ options first (each script documents them at the top of the file):
 | Simulation regression (WSL) | `python3 scripts/run_tests.py` | Exists |
 | FPGA build (Windows, Vivado on PATH) | `vivado -mode batch -nojournal -nolog -source scripts/build.tcl` | Exists |
 | Program the board over JTAG (Windows) | `vivado -mode batch -nojournal -nolog -source scripts/program.tcl` | Exists |
+| Phase 1 block synthesis check (Windows) | `vivado -mode batch -nojournal -nolog -source scripts/synth_blocks.tcl` | Exists, not yet run |
 | Binary to `.mem` conversion (WSL) | `python3 scripts/bin2mem.py` | Planned, Phase 3 |
 
 > [!CAUTION]

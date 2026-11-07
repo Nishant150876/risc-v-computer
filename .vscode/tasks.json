@@ -68,10 +68,7 @@
                 "cwd": "${workspaceFolder}"
             },
             "dependsOn": "Smoke: compile counter",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",
@@ -89,7 +86,10 @@
             "options": {
                 "cwd": "${workspaceFolder}"
             },
-            "group": "test",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",

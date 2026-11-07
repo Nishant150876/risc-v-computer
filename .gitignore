@@ -21,6 +21,9 @@ obj_dir/
 *.dcp
 *.bit
 *.ltx
+# Vivado scratch files written into the working directory
+clockInfo.txt
+dfx_runtime.txt
 
 # Compiled software
 *.o
