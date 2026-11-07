@@ -1,21 +1,40 @@
-# 📱 Tab5 firmware and user-interface plan
+[Project README](../README.md) › [Docs index](README.md) › **Tab5 firmware**
 
-[Project README](../README.md) · [Docs index](README.md) · [Integration architecture](TAB5_INTEGRATION.md) · [Debug protocol](DEBUG_PROTOCOL.md) · [firmware/tab5/ folder](../firmware/tab5/README.md)
+# Tab5 firmware and user-interface plan
+
+This is the design for the touchscreen application on the M5Stack Tab5: which framework it uses,
+how its modules and tasks are split, which screens it has, and how programs are stored on
+microSD. Read it before writing anything in `firmware/tab5/`.
 
 > [!NOTE]
 > **Status: 📋 PLANNED.** Framework selected; no firmware written. The owner's Tab5 revision is
-> ❔ NOT VERIFIED, so no SDK or driver version is pinned.
+> ❔ NOT VERIFIED, so no SDK, dependency, toolchain or driver version is pinned or validated.
+
+Follow these companion documents:
+
+| Document | For |
+| --- | --- |
+| [Integration architecture](TAB5_INTEGRATION.md) | What the FPGA side does and the rules it enforces |
+| [Wire protocol](DEBUG_PROTOCOL.md) | Packets, sessions, retries and commands |
+| [Hardware gate](HARDWARE_CHECKLIST.md) | Device identification, wiring and power |
 
 <details open>
 <summary><b>Contents</b></summary>
 
-- [In plain terms](#in-plain-terms) · [Framework decision](#framework-decision) · [Modules and task ownership](#modules-and-task-ownership)
-- [States and data provenance](#states-capability-checks-and-data-provenance) · [Screens](#screens-and-initial-availability) · [microSD content](#microsd-content-and-image-validation)
-- [Reproducible builds and recovery](#reproducible-builds-and-recovery) · [Firmware verification](#firmware-verification)
+1. [In plain terms](#1-in-plain-terms)
+2. [Framework decision](#2-framework-decision)
+3. [Modules and task ownership](#3-modules-and-task-ownership)
+4. [States, capability checks, and data provenance](#4-states-capability-checks-and-data-provenance)
+5. [Screens and initial availability](#5-screens-and-initial-availability)
+6. [microSD content and image validation](#6-microsd-content-and-image-validation)
+7. [Reproducible builds and recovery](#7-reproducible-builds-and-recovery)
+8. [Firmware verification](#8-firmware-verification)
 
 </details>
 
-## In plain terms
+---
+
+## 1. In plain terms
 
 | Term | What it is | Its job here |
 | --- | --- | --- |
@@ -24,46 +43,58 @@
 | **LVGL** | A graphics library for embedded touchscreens | Draws the screens, buttons and lists; handles touch |
 | **BSP** | Board support package | Knows how this exact Tab5 revision wires its display, touch and SD card |
 
-The golden rule of the design: **the touchscreen must never wait on the FPGA.** Slow work
-happens in background tasks that report back through queues.
+> [!IMPORTANT]
+> **The golden rule of the design: the touchscreen must never wait on the FPGA.** Slow work
+> happens in background tasks that report back through queues.
 
+---
 
-Status: design selected; firmware not implemented and no dependency/toolchain
-version has been validated on the owner's unknown hardware revision. Follow
-the [integration architecture](TAB5_INTEGRATION.md),
-[wire protocol](DEBUG_PROTOCOL.md), and [hardware gate](HARDWARE_CHECKLIST.md).
+## 2. Framework decision
 
-## Framework decision
+**Use native ESP-IDF + FreeRTOS + LVGL**, with one revision-compatible Tab5 board-support layer.
+This gives:
 
-Use **native ESP-IDF + FreeRTOS + LVGL**, with one revision-compatible Tab5
-board-support layer. This gives separate transport/storage/UI tasks, bounded
-queues, reproducible configuration, and an offline application without a
-browser/server. Board support is an interface, not permission to assume a
-particular display revision.
+- separate transport/storage/UI tasks and bounded queues;
+- reproducible configuration;
+- an offline application without a browser/server.
+
+Board support is an interface, not permission to assume a particular display revision.
+
+### Candidates compared
 
 | Candidate | Evidence and tradeoff | Decision |
 | --- | --- | --- |
-| ESP-IDF, LVGL, compatible official BSP/board bindings | Espressif publishes a Tab5 BSP with LVGL/display/touch/SD support. Its listed controllers do not establish compatibility with every newer Tab5 revision. | Selected production direction; exact BSP/driver combination must pass T0. |
+| ESP-IDF, LVGL, compatible official BSP/board bindings | Espressif publishes a Tab5 BSP with LVGL/display/touch/SD support. Its listed controllers do not establish compatibility with every newer Tab5 revision. | **Selected production direction**; exact BSP/driver combination must pass T0. |
 | M5Stack factory ESP-IDF/LVGL application | Official M5Stack source provides real device initialization and build/recovery references. It is a hardware example, not our diagnostics application. | Reference board bindings and recovery behavior; preserve licenses for any reused code. |
 | Arduino + M5Unified/M5GFX | Official M5Stack libraries support Tab5 and offer a short display/touch/peripheral bring-up route. A second production stack adds duplicated builds and behavior. | Optional isolated T0 smoke experiment if useful, not a competing final firmware. |
 
 Sources reviewed November 6, 2026:
-[Espressif Tab5 BSP](https://github.com/espressif/esp-bsp/tree/master/bsp/m5stack_tab5),
-[official M5Stack factory source](https://github.com/m5stack/M5Tab5-UserDemo),
-[M5GFX](https://github.com/m5stack/M5GFX), and
-[M5Unified](https://github.com/m5stack/M5Unified).
-The factory README names an ESP-IDF version for its example; that is evidence
-of that example's build, not an automatic version pin for this project.
 
-T0 must identify the actual display/touch controller, build an appropriate
-vendor-supported sample, and test display, touch, SD and UART together. Then
-record exact ESP-IDF, BSP, LVGL and driver versions/commit IDs, lockfiles,
-configuration defaults, licenses and recovery steps. If the chosen BSP does
-not support the actual revision, use compatible official board bindings or a
-documented driver adaptation before continuing. Do not flash an assumed panel
-configuration and call the device validated.
+- [Espressif Tab5 BSP](https://github.com/espressif/esp-bsp/tree/master/bsp/m5stack_tab5)
+- [Official M5Stack factory source](https://github.com/m5stack/M5Tab5-UserDemo)
+- [M5GFX](https://github.com/m5stack/M5GFX)
+- [M5Unified](https://github.com/m5stack/M5Unified)
 
-## Modules and task ownership
+> [!NOTE]
+> The factory README names an ESP-IDF version for its example; that is evidence of that example's
+> build, not an automatic version pin for this project.
+
+### What T0 must do before any version is pinned
+
+1. Identify the actual display/touch controller.
+2. Build an appropriate vendor-supported sample.
+3. Test display, touch, SD and UART together.
+4. Record exact ESP-IDF, BSP, LVGL and driver versions/commit IDs, lockfiles, configuration
+   defaults, licenses and recovery steps.
+5. If the chosen BSP does not support the actual revision, use compatible official board bindings
+   or a documented driver adaptation before continuing.
+
+> [!WARNING]
+> Do not flash an assumed panel configuration and call the device validated.
+
+---
+
+## 3. Modules and task ownership
 
 Planned home: `firmware/tab5/`. Do not create an enormous application source file.
 
@@ -78,6 +109,11 @@ Planned home: `firmware/tab5/`. Do not create an enormous application source fil
 | `ui/` | LVGL screens/components, touch actions, navigation, status labels and local assets. |
 | `diagnostics/` | BIST/injection workflow, reference comparison and structured results. |
 
+### Who runs what
+
+The diagram shows the three kinds of task and the bounded queues between them. Only the UI task
+touches LVGL.
+
 ```mermaid
 flowchart LR
     UI["UI task<br/>only task that touches LVGL"] -- "commands" --> Q1[["bounded command queue"]]
@@ -89,48 +125,86 @@ flowchart LR
     Q3 --> UI
 ```
 
-One task owns UART I/O and packet processing. Worker tasks perform file and
-device operations. The UI task alone mutates LVGL objects, using messages to
-receive immutable state snapshots. Keep LVGL callbacks short; no blocking
-serial reads, sleeps, full program transfers, or SD scans in touch callbacks.
-Keepalive/status work must remain scheduled during large transfers. Use
-bounded buffers rather than repeatedly allocating whole image/trace files.
+| Task | Owns |
+| --- | --- |
+| UART I/O task | UART I/O and packet processing |
+| Worker tasks | File and device operations |
+| UI task | All LVGL objects, updated from messages carrying immutable state snapshots |
 
-The device layer provides request/accepted/progress/completed/error callbacks.
-An operation ID is not a successful result. UI navigation does not cancel a
-hardware action implicitly; explicit cancellation follows the hardware cleanup
-contract. Update the application model only after verified device responses.
+**Task rules:**
 
-## States, capability checks, and data provenance
+- Keep LVGL callbacks short; no blocking serial reads, sleeps, full program transfers, or SD scans
+  in touch callbacks.
+- Keepalive/status work must remain scheduled during large transfers.
+- Use bounded buffers rather than repeatedly allocating whole image/trace files.
 
-Track three independent state machines: connection, CPU, and operation, as
-defined in the protocol. The top bar always shows connection health, current
-hardware identity, execution state and the age of displayed data.
+### The device layer
 
-Use badges **LIVE**, **CAPTURED**, **HISTORICAL**, and **MOCK**. T1 may use mock
-data with an unmistakable persistent MOCK badge; do not expose real mutation
-controls through a mock backend. A frozen pipeline capture includes cycle,
-generation and trigger. An old benchmark is historical even if the FPGA is
-connected now. After disconnect, retain data only with an explicit stale label.
+- The device layer provides request/accepted/progress/completed/error callbacks.
+- An operation ID is not a successful result.
+- UI navigation does not cancel a hardware action implicitly; explicit cancellation follows the
+  hardware cleanup contract.
+- Update the application model only after verified device responses.
 
-Discover FPGA capabilities before enabling an operation. A disabled control
-should explain the relevant missing capability or state. An unimplemented
-hardware command cannot be simulated behind a button while claiming LIVE.
-The FPGA remains the authority on permission/state; UI checks are not the
-only protection for register edits, BIST, or fault injection.
+---
 
-Demo Mode and Engineering Mode are views of the same application state and
-protocol. Switching views does not reset the FPGA, lose the loaded program,
-or change register state. Destructive actions require an explicit operator
-confirmation and explain the affected memory/program, as required by the brief.
+## 4. States, capability checks, and data provenance
 
-## Screens and initial availability
+### Three state machines
 
-Use the verified 1280×720 landscape display orientation with large touch
-targets, readable hex values, consistent spacing and restrained animation.
-Start with a 5 Hz status/counter refresh budget; measure frame responsiveness
-while transferring an image, streaming console text, and running diagnostics.
-An initial target is touch feedback within 100 ms, to be measured at T1/T5.
+Track three independent state machines: connection, CPU, and operation, as defined in the
+[protocol](DEBUG_PROTOCOL.md#capabilities-and-state-machines). The top bar always shows:
+
+- connection health;
+- current hardware identity;
+- execution state;
+- the age of displayed data.
+
+### Provenance badges
+
+| Badge | Meaning | Rules |
+| --- | --- | --- |
+| **LIVE** | Just read from the connected FPGA | The only badge for current hardware behavior. |
+| **CAPTURED** | A frozen hardware snapshot | A frozen pipeline capture includes cycle, generation and trigger. |
+| **HISTORICAL** | A stored earlier result | An old benchmark is historical even if the FPGA is connected now. |
+| **MOCK** | Simulated data | T1 may use mock data with an unmistakable persistent MOCK badge; do not expose real mutation controls through a mock backend. |
+
+After disconnect, retain data only with an explicit stale label.
+
+### Capability checks
+
+- Discover FPGA capabilities before enabling an operation.
+- A disabled control should explain the relevant missing capability or state.
+- An unimplemented hardware command cannot be simulated behind a button while claiming LIVE.
+
+> [!IMPORTANT]
+> The FPGA remains the authority on permission/state; UI checks are not the only protection for
+> register edits, BIST, or fault injection.
+
+### Demo Mode and Engineering Mode
+
+- Demo Mode and Engineering Mode are views of the same application state and protocol.
+- Switching views does not reset the FPGA, lose the loaded program, or change register state.
+- Destructive actions require an explicit operator confirmation and explain the affected
+  memory/program, as required by the brief.
+
+---
+
+## 5. Screens and initial availability
+
+### Display and responsiveness targets
+
+| Item | Target |
+| --- | --- |
+| Display | The verified 1280×720 landscape display orientation |
+| Layout | Large touch targets, readable hex values, consistent spacing and restrained animation |
+| Refresh budget | Start with a 5 Hz status/counter refresh |
+| Touch feedback | An initial target of 100 ms, to be measured at T1/T5 |
+
+Measure frame responsiveness while transferring an image, streaming console text, and running
+diagnostics.
+
+### Screens
 
 | Screen | Content | Enable milestone |
 | --- | --- | --- |
@@ -149,14 +223,17 @@ An initial target is touch feedback within 100 ms, to be measured at T1/T5.
 | Presentation / About | Locally stored one-minute explanation, ownership of FPGA/firmware design and short/deep guided sequences. | T1 static; verified actions T13. |
 | Reference report | Expected versus actual retirement, earliest proven mismatch and surrounding complete trace. | T12. |
 
-The final presentation may render program-generated graphics or input on Tab5,
-but the simulated world/game/algorithm must run on the FPGA. If a screen only
-illustrates architecture, label it as an explanation rather than a cycle capture.
+> [!IMPORTANT]
+> The final presentation may render program-generated graphics or input on Tab5, but the
+> simulated world/game/algorithm must run on the FPGA. If a screen only illustrates architecture,
+> label it as an explanation rather than a cycle capture.
 
-## microSD content and image validation
+---
 
-Use a simple local layout, with generated binaries prepared on the development
-computer. Example logical paths, not files already supplied:
+## 6. microSD content and image validation
+
+Use a simple local layout, with generated binaries prepared on the development computer. Example
+logical paths, not files already supplied:
 
 ```text
 /programs/<name>/manifest.json
@@ -166,51 +243,94 @@ computer. Example logical paths, not files already supplied:
 /reports/<run-id>.csv
 ```
 
-Manifest schema version 1 fields: name, description, ISA `rv32i`, ABI `ilp32`,
-binary path, byte count, load/entry address, CRC-32, BSS bounds, stack bounds,
-required FPGA capabilities, and program/build identifier. Initial constraints
-and memory reservations are in the architecture document. A development-side
-packaging tool should generate metadata from the actual ELF/linker output,
-not ask an operator to type checksums or guess BSS bounds.
+### Manifest schema version 1
 
-Validate before LOAD_BEGIN, then let the FPGA independently validate bounds
-and readback. Stream chunks instead of copying every program into UI RAM.
-Disallow path traversal and oversized/missing files. Switching from A to B
-clears the prior program's console/counter baseline only at defined launch
-boundaries, while preserving historical reports with their own image hashes.
-Missing/corrupt SD yields a clear recoverable state; static About and status
-screens still work. Use temporary report files then rename after successful
-write, and report removal/full-card errors without blocking the UI.
+| Group | Fields |
+| --- | --- |
+| Identity | Name, description, program/build identifier |
+| Target | ISA `rv32i`, ABI `ilp32` |
+| Image | Binary path, byte count, load/entry address, CRC-32 |
+| Layout | BSS bounds, stack bounds |
+| Requirements | Required FPGA capabilities |
 
-## Reproducible builds and recovery
+- Initial constraints and memory reservations are in the
+  [architecture document](TAB5_INTEGRATION.md#7-program-images-loading-and-launch).
+- A development-side packaging tool should generate metadata from the actual ELF/linker output,
+  not ask an operator to type checksums or guess BSS bounds.
 
-At implementation, commit source, `CMakeLists.txt`, component manifests,
-`sdkconfig.defaults`, board profile, dependency lockfiles, local fonts/assets,
-and documented SDK version. Generated build files, managed component downloads,
-local `sdkconfig`, and compiled firmware stay ignored. A lockfile is source
-configuration, not generated clutter to discard.
+### Validation and loading rules
 
-Document clean environment setup, `esp32p4` target, actual USB/serial port,
-build/flash/monitor steps, supported boot/recovery procedure, partition layout,
-and restoring a known-good image. Keep a tested recovery path even after the
-unit auto-starts the app. No Wi-Fi/cloud service is required for runtime.
-Do not install a second production toolchain merely for a prototype screen.
+1. Validate before LOAD_BEGIN, then let the FPGA independently validate bounds and readback.
+2. Stream chunks instead of copying every program into UI RAM.
+3. Disallow path traversal and oversized/missing files.
 
-`host/` will provide the Python protocol client and deterministic preparation
-tools for development/testing. Declare any serial dependency when introduced;
-do not borrow the unrelated project's Python/uv restrictions. Host tooling
-is optional during the final portable demonstration.
+**Switching programs.** Switching from A to B clears the prior program's console/counter
+baseline only at defined launch boundaries, while preserving historical reports with their own
+image hashes.
 
-## Firmware verification
+**SD failures:**
 
-Test codecs and application state independently of LVGL/hardware. Use a fake
-transport only in explicit MOCK mode. Exercise unsupported capabilities,
-late replies, duplicated/reordered messages, connection loss during loads,
-SD removal/full card, control navigation during long operations, queue overflow,
-and recovery when either device resets first. Validate live behaviors against
-FPGA tests rather than just screen appearance. Record measured responsiveness,
-heap/stack use, protocol errors, and actual hardware/driver versions at gates.
+- Missing/corrupt SD yields a clear recoverable state; static About and status screens still
+  work.
+- Use temporary report files then rename after successful write.
+- Report removal/full-card errors without blocking the UI.
 
 ---
 
-<sub>Related: [firmware/tab5/ overview](../firmware/tab5/README.md) · [Debug protocol](DEBUG_PROTOCOL.md) · [Integration architecture](TAB5_INTEGRATION.md) · [Hardware checklist](HARDWARE_CHECKLIST.md) · [Build plan T0, T1, T5](BUILD_PLAN.md#t0-identify-and-bring-up-the-actual-tab5) · [Docs index](README.md)</sub>
+## 7. Reproducible builds and recovery
+
+### What goes into Git at implementation
+
+| Commit | Keep out of Git (ignored) |
+| --- | --- |
+| Source, `CMakeLists.txt`, component manifests, `sdkconfig.defaults`, board profile, dependency lockfiles, local fonts/assets, documented SDK version | Generated build files, managed component downloads, local `sdkconfig`, compiled firmware |
+
+> [!NOTE]
+> A lockfile is source configuration, not generated clutter to discard.
+
+### What to document
+
+- Clean environment setup and the `esp32p4` target.
+- Actual USB/serial port and build/flash/monitor steps.
+- Supported boot/recovery procedure and partition layout.
+- Restoring a known-good image.
+
+Keep a tested recovery path even after the unit auto-starts the app. No Wi-Fi/cloud service is
+required for runtime. Do not install a second production toolchain merely for a prototype
+screen.
+
+### Host tooling
+
+- `host/` will provide the Python protocol client and deterministic preparation tools for
+  development/testing.
+- Declare any serial dependency when introduced; do not borrow the unrelated project's Python/uv
+  restrictions.
+- Host tooling is optional during the final portable demonstration.
+
+---
+
+## 8. Firmware verification
+
+Test codecs and application state independently of LVGL/hardware. Use a fake transport only in
+explicit MOCK mode.
+
+Exercise:
+
+- unsupported capabilities;
+- late replies, duplicated/reordered messages;
+- connection loss during loads;
+- SD removal/full card;
+- control navigation during long operations;
+- queue overflow;
+- recovery when either device resets first.
+
+Validate live behaviors against FPGA tests rather than just screen appearance. At gates, record
+measured responsiveness, heap/stack use, protocol errors, and actual hardware/driver versions.
+
+**Next step:** the first firmware milestone is
+[T0](BUILD_PLAN.md#t0-identify-and-bring-up-the-actual-tab5), which starts with the
+[hardware identification record](HARDWARE_CHECKLIST.md#2-t0-identification-record).
+
+---
+
+**Related:** [firmware/tab5/ overview](../firmware/tab5/README.md) · [Debug protocol](DEBUG_PROTOCOL.md) · [Integration architecture](TAB5_INTEGRATION.md) · [Hardware checklist](HARDWARE_CHECKLIST.md) · [Build plan T0, T1, T5](BUILD_PLAN.md#t0-identify-and-bring-up-the-actual-tab5) · [Docs index](README.md)

@@ -1,34 +1,58 @@
-# 💾 `sw/`: software that runs on the CPU
+[Project README](../README.md) › **sw/**
+
+# `sw/`: software that runs on the CPU
+
+This folder will hold the programs that run **on the custom CPU**, not on your computer. Read
+this page to see what memory a program gets, how a C file becomes a memory image, and which demo
+programs are planned.
 
 > [!NOTE]
 > **Status: 📋 PLANNED.** `common/`, `tests/`, `riscv-tests/` and `programs/` hold only
 > `.gitkeep` placeholders. There is no startup code, linker script, header, test or program
 > yet, and no command on this page has been run. Status labels are defined in the
-> [root README](../README.md#status).
+> [root README](../README.md#2-project-status).
 
-[← Back to the project README](../README.md)
+<details open>
+<summary><b>On this page</b></summary>
 
-## What lives here
+1. [What lives here](#1-what-lives-here)
+2. [The memory a program sees](#2-the-memory-a-program-sees)
+3. [Devices are addresses](#3-devices-are-addresses)
+4. [From C to the board](#4-from-c-to-the-board)
+5. [Program manifests (milestone T5)](#5-program-manifests-milestone-t5)
+6. [Planned demo programs](#6-planned-demo-programs)
+7. [Limits to know](#7-limits-to-know)
+8. [Related](#8-related)
 
-This folder holds the programs that will run **on the custom CPU**, not on your computer.
-They are compiled on a development machine with the RISC-V GCC cross-compiler, turned into a
+</details>
+
+---
+
+## 1. What lives here
+
+Programs are compiled on a development machine with the RISC-V GCC cross-compiler, turned into a
 memory image, and placed in the CPU's RAM.
 
-These programs are **bare-metal** and **freestanding**: there is no operating system and no C
-standard library, so the project supplies its own minimal startup code, memory layout and
-`printf`. That keeps binaries small and leaves nothing hidden.
+They are **bare-metal** and **freestanding**: there is no operating system and no C standard
+library. The project supplies its own minimal startup code, memory layout and `printf`, which
+keeps binaries small and leaves nothing hidden.
 
 | Folder | Planned contents | Phase |
 | --- | --- | --- |
 | [`common/`](common/) | `crt0.S` (sets the stack pointer, clears `.bss`, calls `main`), `link.ld` (places code and data in the 64 KiB RAM), `mmio.h` (one name per device address), `printf.c` | 3, 4 |
 | [`tests/`](tests/) | Hand-written assembly tests, one per group: register ALU, immediate ALU, loads and stores, branches, jumps, LUI/AUIPC; Fibonacci in assembly; the pipeline hazard zoo | 2, 5 |
-| [`riscv-tests/`](riscv-tests/) | Reserved for the official rv32ui suite as a Git submodule, plus a small custom environment header (the stock one uses CSR instructions this CPU does not implement). Remove `.gitkeep` before adding the submodule. | 2 |
+| [`riscv-tests/`](riscv-tests/) | Reserved for the official rv32ui suite as a Git submodule, plus a small custom environment header (the stock one uses CSR instructions this CPU does not implement) | 2 |
 | [`programs/`](programs/) | C and assembly demos: fib, sieve, Game of Life, Snake | 3–7 |
 
-## The memory a program sees
+> [!WARNING]
+> Remove `riscv-tests/.gitkeep` before adding the submodule.
 
-All code, data and stack share the single 64 KiB RAM starting at address 0. The proposed
-software layout, to be proven by linker assertions in Phase 3:
+---
+
+## 2. The memory a program sees
+
+All code, data and stack share the single 64 KiB RAM starting at address 0. The diagram shows
+the proposed software layout, to be proven by linker assertions in Phase 3:
 
 ```mermaid
 flowchart TB
@@ -36,9 +60,13 @@ flowchart TB
     B --- C["0x0000_E000 to 0x0000_FFFF, 8 KiB<br/>stack, initial SP = 0x0001_0000"]
 ```
 
-Devices are just addresses. A load or store to one of them reaches the device instead of RAM,
-so a device register looks like a variable at a fixed address. This illustrative sketch shows
-the idea that `mmio.h` will wrap, using the planned LED and switch addresses:
+---
+
+## 3. Devices are addresses
+
+A load or store to a device address reaches the device instead of RAM, so a device register
+looks like a variable at a fixed address. This illustrative sketch shows the idea that `mmio.h`
+will wrap, using the planned LED and switch addresses:
 
 ```c
 /* Illustration only: the real names will be defined in sw/common/mmio.h. */
@@ -53,14 +81,19 @@ int main(void) {
 
 `volatile` tells the compiler that every read and write matters, so it cannot cache the value
 or remove the loop body. The full list of device addresses is in the
-[memory map](../README.md#architecture).
+[memory map](../docs/BUILD_PLAN.md#6-memory-map).
+
+---
 
 <a id="from-c-to-the-board"></a>
 
-## From C to the board
+## 4. From C to the board
 
-> 📋 **PLANNED** flow from the [build plan](../docs/BUILD_PLAN.md#software-flow-from-c-to-the-board).
+> [!NOTE]
+> 📋 **PLANNED** flow from the [build plan](../docs/BUILD_PLAN.md#11-software-flow-from-c-to-the-board).
 > `crt0.S`, `link.ld`, `printf.c` and `scripts/bin2mem.py` do not exist yet.
+
+The diagram shows each file a program passes through, from source to simulation and the board:
 
 ```mermaid
 flowchart LR
@@ -97,19 +130,37 @@ flowchart LR
    binary and a checked manifest go on the Tab5's microSD card and are loaded, verified and run
    without rebuilding the bitstream.
 
-If the toolchain was installed as `riscv64-unknown-elf-*`, the same flags work with that prefix,
-provided it was built with 32-bit (multilib) support.
+> [!TIP]
+> If the toolchain was installed as `riscv64-unknown-elf-*`, the same flags work with that
+> prefix, provided it was built with 32-bit (multilib) support.
 
-## Program manifests (milestone T5)
+---
+
+## 5. Program manifests (milestone T5)
 
 Programs loaded from the Tab5 carry a manifest generated from the real ELF and linker output,
-never typed by hand: schema version, name, description, ISA `rv32i`, ABI `ilp32`, binary path,
-byte count, load and entry address, CRC-32, `.bss` bounds, stack bounds, required FPGA
-capabilities and a build identifier. The loader rejects anything out of bounds, overlapping the
-scratch or stack region, with a bad entry point, or with a checksum mismatch. Details:
-[TAB5_INTEGRATION.md](../docs/TAB5_INTEGRATION.md#program-images-loading-and-launch).
+never typed by hand. It holds:
 
-## Planned demo programs
+- schema version, name and description;
+- ISA `rv32i` and ABI `ilp32`;
+- binary path and byte count;
+- load and entry address;
+- CRC-32;
+- `.bss` bounds and stack bounds;
+- required FPGA capabilities and a build identifier.
+
+The loader rejects an image that:
+
+- is out of bounds;
+- overlaps the scratch or stack region;
+- has a bad entry point;
+- has a checksum mismatch.
+
+Details: [TAB5_INTEGRATION.md](../docs/TAB5_INTEGRATION.md#7-program-images-loading-and-launch).
+
+---
+
+## 6. Planned demo programs
 
 | Program | Shows | Phase |
 | --- | --- | --- |
@@ -120,16 +171,29 @@ scratch or stack region, with a bad entry point, or with a checksum mismatch. De
 | Game of Life | VGA framebuffer, switches choose the pattern | 7 |
 | Snake or Pong | Playable with the board's buttons | 7 |
 
-## Limits to know
+---
 
-- No C standard library, no operating system, no floating point hardware, no multiply/divide
-  instructions (handled by `libgcc`).
-- Misaligned loads and stores stop the CPU with an error.
-- ECALL and EBREAK halt the CPU (project policy).
-- 64 KiB total for code, data and stack.
+## 7. Limits to know
 
-## Related
+| Limit | Detail |
+| --- | --- |
+| No C standard library | The project supplies its own startup code and `printf` |
+| No operating system | Programs run bare-metal from address 0 |
+| No floating point hardware | |
+| No multiply/divide instructions | Handled by `libgcc` |
+| Misaligned loads and stores | Stop the CPU with an error |
+| ECALL and EBREAK | Halt the CPU (project policy) |
+| Memory | 64 KiB total for code, data and stack |
 
-- How the CPU executes these instructions: [rtl/README.md](../rtl/README.md)
-- How they are tested: [tb/README.md](../tb/README.md)
-- Conversion and build scripts: [scripts/README.md](../scripts/README.md)
+---
+
+## 8. Related
+
+| For | See |
+| --- | --- |
+| How the CPU executes these instructions | [rtl/README.md](../rtl/README.md) |
+| How they are tested | [tb/README.md](../tb/README.md) |
+| Conversion and build scripts | [scripts/README.md](../scripts/README.md) |
+| Device addresses | [Build plan: memory map](../docs/BUILD_PLAN.md#6-memory-map) |
+
+**Next step:** these folders fill up from [Phase 2](../docs/BUILD_PLAN.md#phase-2-single-cycle-cpu-in-simulation).

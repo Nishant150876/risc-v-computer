@@ -1,23 +1,45 @@
-# 📱 `firmware/tab5/`: the touchscreen application
+[Project README](../../README.md) › **firmware/tab5/**
+
+# `firmware/tab5/`: the touchscreen application
+
+This folder will hold the firmware that turns the M5Stack Tab5 into the portable front panel of
+the RISC-V computer. Read this page for a short overview; the full design is in
+[TAB5_FIRMWARE.md](../../docs/TAB5_FIRMWARE.md).
 
 > [!NOTE]
 > **Status: 📋 PLANNED.** This folder holds only a `.gitkeep` placeholder. No firmware has been
 > written, built or flashed, and the owner's exact Tab5 model and revision are ❔ **NOT
-> VERIFIED**. The full design is in [TAB5_FIRMWARE.md](../../docs/TAB5_FIRMWARE.md). Status
-> labels are defined in the [root README](../../README.md#status).
+> VERIFIED**. Status labels are defined in the [root README](../../README.md#2-project-status).
 
-[← Back to the project README](../../README.md)
+<details open>
+<summary><b>On this page</b></summary>
 
-## What it will do
+1. [What it will do](#1-what-it-will-do)
+2. [Framework](#2-framework)
+3. [Planned module structure](#3-planned-module-structure)
+4. [Screens and when they become real](#4-screens-and-when-they-become-real)
+5. [microSD layout](#5-microsd-layout)
+6. [Build and recovery](#6-build-and-recovery)
+7. [Related](#7-related)
 
-The M5Stack Tab5 (an ESP32-P4 device with a 5-inch 1280 × 720 touchscreen and microSD) becomes
-the portable front panel of the RISC-V computer. It will load programs from microSD, show the
-CPU's console output, and drive the FPGA's debug hardware: halt, resume, step, breakpoints,
-registers, memory, trace, performance counters, self-test and fault injection.
+</details>
 
-It is a **controller and observer**. The ESP32-P4 never runs the RISC-V programs being
-demonstrated; those always execute on the FPGA. Anything that is not live hardware data is
-labelled on screen.
+---
+
+## 1. What it will do
+
+The M5Stack Tab5 is an ESP32-P4 device with a 5-inch 1280 × 720 touchscreen and microSD. The
+firmware will:
+
+- load programs from microSD;
+- show the CPU's console output;
+- drive the FPGA's debug hardware: halt, resume, step, breakpoints, registers, memory, trace,
+  performance counters, self-test and fault injection.
+
+> [!IMPORTANT]
+> It is a **controller and observer**. The ESP32-P4 never runs the RISC-V programs being
+> demonstrated; those always execute on the FPGA. Anything that is not live hardware data is
+> labelled on screen.
 
 | Badge | Meaning |
 | --- | --- |
@@ -26,13 +48,23 @@ labelled on screen.
 | **HISTORICAL** | A stored earlier result, such as an old benchmark |
 | **MOCK** | Simulated data for UI development; never mixed with real controls |
 
-## Framework
+---
 
-**Native ESP-IDF + FreeRTOS + LVGL** with one board-support layer matched to the actual
-device revision. Exact versions are pinned only after the real device passes milestone T0.
-Arduino with M5Unified/M5GFX is allowed only as an isolated bring-up experiment.
+## 2. Framework
 
-## Planned module structure
+| Choice | Role |
+| --- | --- |
+| **Native ESP-IDF + FreeRTOS + LVGL**, with one board-support layer matched to the actual device revision | The framework |
+| Arduino with M5Unified/M5GFX | Allowed only as an isolated bring-up experiment |
+
+Exact versions are pinned only after the real device passes milestone T0.
+
+---
+
+## 3. Planned module structure
+
+The diagram shows the firmware layers, from the screens at the top to the board hardware at the
+bottom. Each layer only calls the one below it.
 
 ```mermaid
 flowchart TD
@@ -46,10 +78,16 @@ flowchart TD
     STOR --> BOARD
 ```
 
-One task owns UART I/O and packet processing; worker tasks do file and device operations; only
-the UI task touches LVGL objects. Touch callbacks never block on serial or file access.
+Task ownership:
 
-## Screens and when they become real
+- One task owns UART I/O and packet processing.
+- Worker tasks do file and device operations.
+- Only the UI task touches LVGL objects.
+- Touch callbacks never block on serial or file access.
+
+---
+
+## 4. Screens and when they become real
 
 | Screen | Enabled at |
 | --- | --- |
@@ -61,7 +99,11 @@ the UI task touches LVGL objects. Touch callbacks never block on serial or file 
 | Reference report | T12 |
 | Presentation / About | T1 static; verified actions at T13 |
 
-## microSD layout (example paths, not files that exist)
+---
+
+## 5. microSD layout
+
+These are example paths, not files that exist:
 
 ```text
 /programs/<name>/manifest.json
@@ -71,17 +113,29 @@ the UI task touches LVGL objects. Touch callbacks never block on serial or file 
 /reports/<run-id>.csv
 ```
 
-## Build and recovery
+---
 
-> 📋 **PLANNED.** No build commands are documented yet because no SDK version has been
-> validated on the real device. At implementation, the source, `CMakeLists.txt`, component
-> manifests, `sdkconfig.defaults`, board profile, dependency lockfiles and local assets are
-> committed; `build/`, `managed_components/` and `sdkconfig` stay ignored (already in
-> `.gitignore`). The target chip is the ESP32-P4.
+## 6. Build and recovery
 
-## Related
+> [!NOTE]
+> 📋 **PLANNED.** No build commands are documented yet because no SDK version has been validated
+> on the real device. The target chip is the ESP32-P4.
 
-- Full firmware design: [TAB5_FIRMWARE.md](../../docs/TAB5_FIRMWARE.md)
-- The wire protocol it speaks: [protocol/README.md](../../protocol/README.md)
-- Hardware identification, wiring and power: [HARDWARE_CHECKLIST.md](../../docs/HARDWARE_CHECKLIST.md)
-- Milestones T0–T13: [BUILD_PLAN.md](../../docs/BUILD_PLAN.md#tab5-milestones-portable-control-and-diagnostics)
+At implementation:
+
+| Goes into Git | Stays ignored (already in `.gitignore`) |
+| --- | --- |
+| Source, `CMakeLists.txt`, component manifests, `sdkconfig.defaults`, board profile, dependency lockfiles, local assets | `build/`, `managed_components/`, `sdkconfig` |
+
+---
+
+## 7. Related
+
+| For | See |
+| --- | --- |
+| Full firmware design | [TAB5_FIRMWARE.md](../../docs/TAB5_FIRMWARE.md) |
+| The wire protocol it speaks | [protocol/README.md](../../protocol/README.md) |
+| Hardware identification, wiring and power | [HARDWARE_CHECKLIST.md](../../docs/HARDWARE_CHECKLIST.md) |
+| Milestones T0–T13 | [BUILD_PLAN.md](../../docs/BUILD_PLAN.md#10-tab5-milestones-portable-control-and-diagnostics) |
+
+**Next step:** [T0: identify and bring up the actual Tab5](../../docs/BUILD_PLAN.md#t0-identify-and-bring-up-the-actual-tab5).
