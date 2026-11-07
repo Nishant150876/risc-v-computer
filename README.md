@@ -5,8 +5,9 @@
 **A computer built from scratch in SystemVerilog: a five-stage pipelined RV32I processor, its memory and I/O,<br>
 and a portable touchscreen debugger, running on a Digilent Basys 3 FPGA.**
 
-![Stage: planning](https://img.shields.io/badge/stage-planning%20%2B%20skeleton-lightgrey)
-![Next: Phase 0](https://img.shields.io/badge/next-Phase%200%20smoke%20test-blue)
+![Stage: Phase 0 smoke verified](https://img.shields.io/badge/stage-Phase%200%20smoke%20verified-green)
+[![tests](https://github.com/Nishant150876/risc-v-computer/actions/workflows/tests.yml/badge.svg)](https://github.com/Nishant150876/risc-v-computer/actions/workflows/tests.yml)
+![Next: Vivado blink](https://img.shields.io/badge/next-Vivado%20blink-blue)
 ![Target ISA: RV32I](https://img.shields.io/badge/target%20ISA-RV32I-informational)
 ![HDL: SystemVerilog](https://img.shields.io/badge/HDL-SystemVerilog-informational)
 ![Board: Basys 3](https://img.shields.io/badge/board-Basys%203%20(Artix--7)-informational)
@@ -22,12 +23,12 @@ and a portable touchscreen debugger, running on a Digilent Basys 3 FPGA.**
 </div>
 
 > [!IMPORTANT]
-> **This project is at the planning stage.** The repository holds the folder skeleton, the
-> repository rules and a complete set of design documents. **No CPU RTL, testbench, script,
-> pin-constraint file, C runtime, CI workflow or Tab5 firmware exists yet**, so nothing here
-> has been simulated, synthesized or run on a board. Every hardware capability below is a
-> **planned** design and is labelled as one. The next task is the Phase 0 counter and its
-> self-checking Verilator smoke test.
+> **Phase 0 has its first passing simulation.** The four-bit counter and its self-checking
+> testbench pass 25 checks in Ubuntu through the shared Cursor build task. See the
+> [smoke-test instructions and evidence](docs/PHASE0_SMOKE_TEST.md).
+> **CPU RTL, general build/test scripts, pin constraints, C runtime, CI and Tab5 firmware
+> remain planned.** Nothing has been synthesized or run on a board in this restart.
+> The next task is the general `scripts/run_tests.py` runner.
 
 ---
 
@@ -86,12 +87,13 @@ Every README in this repository uses the same four labels:
 | Folder skeleton (`rtl/`, `tb/`, `sw/`, …) | ✅ IMPLEMENTED | Directories with `.gitkeep` placeholders and READMEs |
 | Repository rules ([AGENTS.md](AGENTS.md), `.gitignore`, `.gitattributes`) | ✅ IMPLEMENTED | Files at the repository root |
 | Build plan, architecture and protocol documents | ✅ IMPLEMENTED (documents only) | [docs/](docs/README.md) |
-| Phase 0 flow: smoke test, `run_tests.py`, `build.tcl`, scripted blink, CI | 🚧 IN PROGRESS: skeleton task done, the rest 📋 | [Phase 0](docs/BUILD_PLAN.md#phase-0-fresh-start) checkboxes |
+| Phase 0 flow: smoke test, `run_tests.py`, `build.tcl`, scripted blink, CI | 🚧 IN PROGRESS: skeleton and smoke test done; 2/6 tasks | [Phase 0](docs/BUILD_PLAN.md#phase-0-fresh-start) checkboxes and [smoke evidence](docs/PHASE0_SMOKE_TEST.md) |
 | CPU building blocks, single-cycle CPU, pipeline | 📋 PLANNED | Phases 1, 2 and 5 |
 | RAM, bus, board I/O, UART, VGA | 📋 PLANNED | Phases 2, 3, 4 and 6 |
 | C runtime (startup code, linker script, `mmio.h`, `printf`) | 📋 PLANNED | Phases 3 and 4 |
 | Tab5 firmware, debug protocol, debug and diagnostic hardware | 📋 PLANNED | Milestones T0–T13 |
-| Toolchain installs (Verilator 5, RISC-V GCC, Vivado) | ❔ NOT VERIFIED | The plan assumes them; nothing checks them yet |
+| Ubuntu simulation tools (Verilator, g++, Make, Python) | ✅ VERIFIED for the counter smoke test | [Observed versions and results](docs/PHASE0_SMOKE_TEST.md#recorded-verification) |
+| GTKWave, RISC-V GCC, Vivado | ❔ NOT VERIFIED | Not checked by the smoke test |
 | Tab5 model and revision, Basys 3 revision and flash part | ❔ NOT VERIFIED | Recorded as unknown in [HARDWARE_CHECKLIST.md](docs/HARDWARE_CHECKLIST.md) |
 | Clock speed, CPI, FPGA resource use, power | ❔ none measured yet | Only measured numbers will ever be reported |
 
@@ -335,8 +337,8 @@ Key design choices:
 
 | Layer | Tool or standard | Used for | Status |
 | --- | --- | --- | --- |
-| Hardware description | SystemVerilog | All RTL and testbenches | 📋 PLANNED |
-| Simulation | Verilator 5, in WSL | Self-checking tests, `-Wall` clean | ❔ install NOT VERIFIED |
+| Hardware description | SystemVerilog | All RTL and testbenches | Counter and its bench implemented; CPU planned |
+| Simulation | Verilator 5, in WSL | Self-checking tests, `-Wall` clean | ✅ counter smoke verified with 5.020 |
 | Waveforms | GTKWave | Inspecting simulations | ❔ install NOT VERIFIED |
 | FPGA build | Xilinx Vivado, non-project Tcl mode, on Windows | Synthesis, place and route, bitstreams | ❔ install NOT VERIFIED |
 | Software | RISC-V GCC, `-march=rv32i -mabi=ilp32`, no standard library | C and assembly programs | ❔ NOT VERIFIED; prefix may be `riscv32-` or `riscv64-unknown-elf-` |
@@ -349,11 +351,13 @@ Key design choices:
 
 ## 📁 Repository structure
 
-Every folder below exists now. Apart from `docs/`, each holds only its README and a
-`.gitkeep` placeholder until real files arrive.
+Every folder below exists now. `rtl/core/counter.sv`, `tb/counter_tb.sv` and the shared
+Cursor task are implemented. Other implementation folders still hold documentation and
+`.gitkeep` placeholders for the planned files described below.
 
 ```text
 risc-v-computer/
+├── .vscode/tasks.json   Default Cursor counter build-and-run task
 ├── rtl/                 Hardware (RTL): the circuits           → rtl/README.md
 │   ├── core/            CPU blocks, single-cycle CPU, pipeline
 │   ├── mem/             Unified RAM and optional boot ROM
@@ -377,7 +381,9 @@ risc-v-computer/
 └── README.md            You are here
 ```
 
-Generated output goes in `build/`, which Git ignores, along with Vivado projects, bitstreams,
+The Cursor smoke task writes generated output to Ubuntu's
+`$HOME/.cache/risc-v-computer/smoke`, keeping it off the Windows/OneDrive mount. Other
+generated output can go in `build/`, which Git ignores, along with Vivado projects, bitstreams,
 logs and compiled binaries. Source memory images (`.mem`, `.coe`) and reviewed reports in
 `docs/` stay trackable. Before the official test suite is added as a submodule, its
 `.gitkeep` placeholder must be removed.
@@ -395,17 +401,27 @@ git clone https://github.com/Nishant150876/risc-v-computer.git
 cd risc-v-computer
 ```
 
-Then read the documentation along one of the [reading paths](#docs-map). There is no code
-to build or run yet.
+Open the working folder in **Cursor connected to WSL: Ubuntu**, save any source edits,
+then press **Ctrl+Shift+B**. The default task, **Smoke: build and run counter**, compiles
+the counter and runs its self-checking testbench. Expected output:
+
+```text
+PASS: counter reset, counting, wraparound and restart (25 checks)
+```
+
+See [PHASE0_SMOKE_TEST.md](docs/PHASE0_SMOKE_TEST.md) for the source files, equivalent
+terminal commands, tool versions and recorded checks. For the design, follow one of the
+[reading paths](#docs-map).
 
 ### Prerequisites the plan expects
 
-> ❔ **NOT VERIFIED.** These are the tools the plan is designed around. Check your own
-> installation before relying on them.
+> Verilator 5.020, g++ 13.3.0, Make 4.3 and Python 3.12.3 were checked in the owner's
+> **Ubuntu** distribution for the smoke test. Other tools below remain **NOT VERIFIED**.
+> Check the installation in the environment you are using before relying on it.
 
 | Environment | Needs |
 | --- | --- |
-| **WSL** (Linux on Windows) | Verilator 5, GTKWave, Python 3, RISC-V GCC (`riscv32-unknown-elf-` or a multilib `riscv64-unknown-elf-`; `ls /opt/riscv/bin` shows which) |
+| **WSL** (Linux on Windows) | Verilator 5, g++, Make and Python 3 for simulation; GTKWave for waveforms and RISC-V GCC (`riscv32-unknown-elf-` or a multilib `riscv64-unknown-elf-`) for later phases |
 | **Windows** | Vivado, on `PATH` for batch builds; a serial terminal such as PuTTY or Tera Term |
 | **Hardware** | Basys 3 and its USB cable. Later: the Tab5, a microSD card and a signal-only UART cable approved at milestone T0 |
 
@@ -437,7 +453,7 @@ The full route from a C file to the board is in [sw/README.md](sw/README.md#from
 | Simulation tools missing in a Windows shell | Verilator and GCC are planned for WSL; Vivado and the serial port for Windows | Run each step in its intended environment |
 | Instructions off by one, or loads return the previous value (future) | Block RAM's one-cycle read delay | Revisit the memory-timing decision; the dedicated memory testbench exists to catch this |
 | Passes in simulation, fails on the board (future) | Timing, clock or reset problem | Read the Vivado timing report first; check clock and reset; show internal values on the 7-segment display or use Vivado's ILA |
-| Slow or locked builds | The working folder is synced by a cloud service such as OneDrive | Keep generated output in the ignored `build/` folder, or build from an unsynced path |
+| Slow builds or Make clock-skew warnings | Generated files are on a Windows/cloud-synced mount | The smoke task uses Ubuntu's local `$HOME/.cache/risc-v-computer/smoke`; keep generated files on the Linux filesystem |
 
 </details>
 
@@ -445,8 +461,9 @@ The full route from a C file to the board is in [sw/README.md](sw/README.md#from
 
 ## 🧪 How the project will be tested
 
-> 📋 **PLANNED.** No tests exist yet. Each bug should be caught at the cheapest layer that
-> can catch it.
+> ✅ The [Phase 0 counter test](docs/PHASE0_SMOKE_TEST.md) passes 25 checks, and its intentional
+> failure returns a nonzero exit status. The CPU and integration layers below remain
+> **PLANNED**. Each bug should be caught at the cheapest layer that can catch it.
 
 ```mermaid
 flowchart LR
@@ -494,7 +511,7 @@ flowchart LR
 
 | Phase | Goal | Gate | Status |
 | --- | --- | --- | --- |
-| **0** Fresh start | One-command tests and bitstreams | `run_tests.py` passes in WSL and on GitHub Actions; scripted blink runs on the board | 🚧 skeleton done, 5 tasks left |
+| **0** Fresh start | One-command tests and bitstreams | `run_tests.py` passes in WSL and on GitHub Actions; scripted blink runs on the board | 🚧 skeleton and smoke test done, 4 tasks left |
 | **1** Building blocks | ALU, register file, immediates, decoder, branch unit | Every Phase 1 testbench passes locally and in CI | 📋 |
 | **2** Single-cycle CPU | Every instruction in one clock, in simulation | All of rv32ui and every directed test pass | 📋 |
 | **3** Board and C | Real C on real hardware | A C program shows fib(switches) on the 7-segment; fib(20) = 6765 = `0x1A6D` | 📋 |
@@ -517,6 +534,7 @@ prediction, CSRs and traps, formal verification, CoreMark, Tiny Tapeout) are in 
 | --- | --- |
 | [docs/README.md](docs/README.md) | Index of every design document and how they relate |
 | [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) | **Source of truth**: phases, gates, design decisions, memory map, risks, progress checkboxes |
+| [docs/PHASE0_SMOKE_TEST.md](docs/PHASE0_SMOKE_TEST.md) | Working Cursor build task, counter checks, observed tool versions and simulation evidence |
 | [docs/TAB5_INTEGRATION.md](docs/TAB5_INTEGRATION.md) | Debug architecture, RAM ownership, halt/step/breakpoint contracts, loader, trace |
 | [docs/DEBUG_PROTOCOL.md](docs/DEBUG_PROTOCOL.md) | Packet format, sessions, retries, commands and status codes |
 | [docs/TAB5_FIRMWARE.md](docs/TAB5_FIRMWARE.md) | Tab5 framework choice, modules, screens, microSD layout |

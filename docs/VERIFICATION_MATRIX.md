@@ -23,7 +23,9 @@ and none is met.
 
 
 Status: all implementation and hardware evidence below is **planned**, not
-passed. The repository currently contains a skeleton and design documents.
+passed. The repository has a skeleton, design documents and a verified
+[Phase 0 counter smoke test](PHASE0_SMOKE_TEST.md); that counter does not
+satisfy any of the Tab5 acceptance requirements below.
 This matrix covers every numbered section in the user's preserved
 [Tab5 specification](TAB5_REQUIREMENTS.md). Milestone definitions and
 dependencies are in [BUILD_PLAN.md](BUILD_PLAN.md); technical contracts are in
@@ -73,7 +75,7 @@ the indicated hardware evidence.
 | REQ-31: portfolio/docs | Reproducible FPGA/firmware/program builds, verified claims and reports/video. | T13 evidence bundle, README reproduction review and architecture sheet. |
 | REQ-32: extensions | SPI, watchpoints, triggered trace, richer reference/symbols remain ordered options. | Separate stretch backlog after the required portable gates. |
 | REQ-33: constraints | Genuine FPGA execution, safe memory/clocking, accurate provenance, no cloud runtime. | Architecture/instruction rules; negative tests and T13 audit. |
-| REQ-34: integration work | Audit, architecture, firmware selection, protocol/map, risks, roadmap and next task. | Planning package delivered; next implementation is Phase 0 smoke test. |
+| REQ-34: integration work | Audit, architecture, firmware selection, protocol/map, risks, roadmap and next task. | Planning package delivered; counter smoke test verified; next implementation is the general Phase 0 test runner. |
 | REQ-35: unified final vision | One coherent portable bring-up/diagnostics platform with independent proof. | T13 combined hardware/software acceptance and reproducibility. |
 
 ## Verification work packages

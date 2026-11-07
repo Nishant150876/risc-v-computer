@@ -1,10 +1,10 @@
 # 🔌 `rtl/`: the hardware
 
 > [!NOTE]
-> **Status: 📋 PLANNED.** Every subfolder here holds only a `.gitkeep` placeholder. No RTL has
-> been written, simulated or synthesized. This page describes the planned design from the
-> [build plan](../docs/BUILD_PLAN.md) and [integration architecture](../docs/TAB5_INTEGRATION.md),
-> so the code has a clear home and contract when it arrives.
+> **Status: 🚧 IN PROGRESS.** [core/counter.sv](core/counter.sv) is implemented and passes its
+> Phase 0 simulation. CPU, memory, peripherals and debug RTL remain **PLANNED**, as described
+> by the [build plan](../docs/BUILD_PLAN.md) and
+> [integration architecture](../docs/TAB5_INTEGRATION.md). No synthesis or board run is claimed.
 > Status labels are defined in the [root README](../README.md#status).
 
 [← Back to the project README](../README.md)
@@ -20,11 +20,16 @@ C++ simulation for testing.
 Everything the CPU *is* will live in this folder: the processor, its memory, its
 peripherals, the debug hardware the Tab5 talks to, and the board's top level.
 
+The current four-bit counter checks the simulation workflow: active-high synchronous reset,
+incrementing, wraparound and restart. In Cursor's **WSL: Ubuntu** window, press **Ctrl+Shift+B**
+to build it and run [counter_tb.sv](../tb/counter_tb.sv). See the
+[smoke-test record](../docs/PHASE0_SMOKE_TEST.md) for all 25 checks and observed tool versions.
+
 ## Folder map
 
-| Folder | Contents (planned files) | Built in |
+| Folder | Contents (planned unless marked implemented) | Built in |
 | --- | --- | --- |
-| [`core/`](core/) | `rv32i_pkg.sv` shared types, `alu.sv`, `regfile.sv`, `imm_gen.sv`, `decoder.sv`, `branch_unit.sv`, `lsu.sv`, `cpu_single.sv`, later `cpu_pipe.sv`, `forward.sv`, `hazard.sv` | Phases 1, 2, 5 |
+| [`core/`](core/) | **Implemented:** `counter.sv` smoke module. Planned: `rv32i_pkg.sv` shared types, `alu.sv`, `regfile.sv`, `imm_gen.sv`, `decoder.sv`, `branch_unit.sv`, `lsu.sv`, `cpu_single.sv`, later `cpu_pipe.sv`, `forward.sv`, `hazard.sv` | Counter: Phase 0; CPU: Phases 1, 2, 5 |
 | [`mem/`](mem/) | `ram.sv`: 64 KiB dual-port block RAM with byte-write enables, loaded with `$readmemh`; optional 2 KiB boot ROM | Phases 2, 4 |
 | [`io/`](io/) | `bus.sv` address decoder, `board_io.sv` (LEDs, switches, buttons, 7-segment), `uart_tx.sv`, `uart_rx.sv`, `vga_timing.sv` and the VGA text/pixel path | Phases 3, 4, 6 |
 | [`debug/`](debug/) | Packet engine, debug-only Wishbone master and slaves, RAM ownership adapter, CPU execution control, breakpoints, snapshots, retirement trace | T2–T8 |

@@ -38,10 +38,16 @@ For Tab5/debug/diagnostic work, also read the relevant contracts in
 35-section proposal is preserved in `docs/TAB5_REQUIREMENTS.md`; scheduling
 and acceptance are defined by the integrated build plan.
 
-Bootstrap state at creation of this file: the repository skeleton exists.
-RTL, testbenches, build/test scripts, software runtime, pin constraints, and CI
-are still pending. Update this description when those workflows are implemented.
-Commands below describe planned entry points, not scripts that already exist.
+Current bootstrap state (November 7, 2026): the skeleton and Phase 0 counter
+smoke test exist. `rtl/core/counter.sv` and `tb/counter_tb.sv` pass in Ubuntu
+through the shared Cursor build task; see `docs/PHASE0_SMOKE_TEST.md`.
+CPU/debug RTL, the general build/test scripts, runtime, pin constraints, and CI
+are still pending. Commands below describe planned scripts, not existing ones.
+
+The owner uses Cursor connected to WSL: Ubuntu. The default Ctrl+Shift+B task
+is `Smoke: build and run counter`. Its generated simulation files use Ubuntu's
+local `$HOME/.cache/risc-v-computer/smoke` to avoid Windows-mounted timestamp
+skew. Keep `.vscode/tasks.json` shared; other local editor settings stay ignored.
 
 ## Repository structure
 

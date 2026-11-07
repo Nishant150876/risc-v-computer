@@ -42,7 +42,8 @@ venv/
 /firmware/tab5/sdkconfig.old
 
 # Editor and operating-system files
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 .idea/
 *.swp
 *.swo

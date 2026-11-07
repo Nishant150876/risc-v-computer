@@ -74,9 +74,9 @@ P1 and P2 are not marked passed by completing this planning document.
 | RAM and CPU bus | No | Keep the planned native CPU ports and CPU address map; add a separate debug adapter and ownership protocol. |
 | UART | No | Implement/test the reusable UART blocks in Phase 4; instantiate a separate debug endpoint, not a second incompatible UART design. |
 | Top, MMCM, reset, XDC | No | Add debug connections only after the documented electrical gate. CPU reset must not reset the transport. |
-| Tests, scripts, CI, C runtime | No | Phase 0 establishes the flow. Extend that runner for debug/diagnostic benches later. |
+| Tests, scripts, CI, C runtime | Counter smoke bench and Cursor task only; general runner, CI and runtime pending | [Phase 0 smoke evidence](PHASE0_SMOKE_TEST.md). Extend the general runner for debug/diagnostic benches once it exists. |
 | Tab5 firmware / host client | No | New modular firmware and Python reference client; share the protocol specification and vectors. |
-| Existing content | Skeleton, instructions, plan, three diagrams | Preserve it. Historical blink source at `9341a22` is reference material, not current validated RTL. |
+| Existing content | Skeleton, instructions, plan, three diagrams, verified counter smoke test | Preserve it. Historical blink source at `9341a22` is reference material, not current validated RTL. |
 
 There is no existing Wishbone implementation to preserve or replace. Do not
 claim the native CPU bus is Wishbone merely because devices are memory-mapped.
@@ -499,8 +499,9 @@ checklist for portable power, configuration flash, and cold-start qualification.
 | 5 | Drain-and-stop, one-instruction admission, wrong-path breakpoint handling, atomic observation. |
 
 All capabilities remain hidden/disabled in the UI until the matching FPGA
-capability and verification gate exist. The next implementation task remains
-the Phase 0 counter/Verilator smoke test, not the full diagnostics subsystem.
+capability and verification gate exist. The Phase 0 counter smoke test now
+passes; the next implementation task is the general `scripts/run_tests.py`
+runner. See the [smoke-test record](PHASE0_SMOKE_TEST.md).
 
 ---
 

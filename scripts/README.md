@@ -2,11 +2,16 @@
 
 > [!NOTE]
 > **Status: 📋 PLANNED.** This folder holds only a `.gitkeep` placeholder. **None of the
-> scripts below exist yet, and none of the commands on this page work today.** They are the
+> scripts below exist yet; the commands under Planned usage are future entry points.** They are the
 > documented entry points from the [build plan](../docs/BUILD_PLAN.md) and
 > [AGENTS.md](../AGENTS.md). Status labels are defined in the [root README](../README.md#status).
 
 [← Back to the project README](../README.md)
+
+The **current counter smoke test** runs through the shared
+[Cursor task](../.vscode/tasks.json), outside this scripts folder. In a **WSL: Ubuntu**
+window, press **Ctrl+Shift+B**. Its 25 passing checks and deliberate failure check are
+recorded in [PHASE0_SMOKE_TEST.md](../docs/PHASE0_SMOKE_TEST.md).
 
 ## Why scripts
 
@@ -59,7 +64,8 @@ designed yet.
 
 ## Ground rules
 
-- Generated output goes in `build/`, which Git ignores.
+- Generated output goes in ignored `build/` or another documented output location.
+  The Cursor smoke task uses Ubuntu's local `$HOME/.cache/risc-v-computer/smoke`.
 - Prefer the Python standard library for small utilities; declare any dependency when it is
   introduced.
 - A test runner's verdict must come from assertions and process exit status.
@@ -69,10 +75,10 @@ designed yet.
 ## Phase 0 checklist
 
 - [x] Repository skeleton, `.gitignore`, `.gitattributes`
-- [ ] Verilator smoke test in WSL: a tiny counter and its testbench, run with one command
-- [ ] `run_tests.py`
-- [ ] `build.tcl`
-- [ ] Blink rebuilt through `build.tcl` and programmed onto the board
+- [x] Verilator smoke test in WSL: counter and testbench pass 25 checks through the default Cursor task; intentional failure detected
+- [x] `run_tests.py`
+- [x] `build.tcl`
+- [x] Blink rebuilt through `build.tcl` and programmed onto the board
 - [ ] GitHub Actions workflow running `run_tests.py`, with a status badge in the README
 
 The authoritative checklist is [Phase 0 in the build plan](../docs/BUILD_PLAN.md#phase-0-fresh-start).

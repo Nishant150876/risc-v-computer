@@ -1,9 +1,9 @@
 # 🧪 `tb/`: testbenches and verification
 
 > [!NOTE]
-> **Status: 📋 PLANNED.** `tb/`, `tb/debug/` and `tb/diag/` hold only `.gitkeep` placeholders.
-> No testbench exists and no test has run. This page describes the planned verification
-> approach. Status labels are defined in the [root README](../README.md#status).
+> **Status: 🚧 IN PROGRESS.** [counter_tb.sv](counter_tb.sv) passes 25 Phase 0 checks in Ubuntu.
+> CPU and integration tests remain **PLANNED**; `debug/` and `diag/` still hold placeholders.
+> Status labels are defined in the [root README](../README.md#status).
 
 [← Back to the project README](../README.md)
 
@@ -107,7 +107,13 @@ are defined in the [verification matrix](../docs/VERIFICATION_MATRIX.md#verifica
 
 ## Running the tests
 
-> 📋 **PLANNED.** `scripts/run_tests.py` does not exist yet.
+**Available now:** in Cursor connected to **WSL: Ubuntu**, save any source edits and press
+**Ctrl+Shift+B** to run **Smoke: build and run counter**. The bench checks reset, counting,
+wraparound, synchronous reset timing and restart, with a timeout guard. Its deliberate
+`+force_failure` mode was also verified to exit nonzero. See
+[PHASE0_SMOKE_TEST.md](../docs/PHASE0_SMOKE_TEST.md) for the commands and evidence.
+
+**Planned general regression:** `scripts/run_tests.py` does not exist yet.
 
 ```bash
 python3 scripts/run_tests.py   # WSL, repository root: build and run every testbench, print a table

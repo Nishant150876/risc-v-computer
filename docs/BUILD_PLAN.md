@@ -23,7 +23,7 @@
 
 We're building a 5-stage pipelined RV32I CPU from scratch in SystemVerilog on the Basys 3, running C compiled with GCC. The M5Stack Tab5 is now the primary portable program launcher, console, hardware debugger and diagnostics interface. The FPGA executes the programs and implements the debug/test hardware; Tab5 operates and observes it. RAM, board I/O, the USB UART and the planned VGA output remain part of the design.
 
-The November 6, 2026 restart currently has a repository skeleton and planning documents. CPU RTL, tools/scripts, firmware and tests are not implemented. The original plan says the development tools are installed; verify their actual versions and paths before use. Follow core Phases 0–5 in order. The Tab5 milestones below have explicit dependencies; the retained VGA/demo path (Phases 6–7) does not block a portable demonstration.
+The November 6, 2026 restart now has a repository skeleton, planning documents and a passing Phase 0 counter smoke test (November 7). CPU/debug RTL, the general scripts, firmware and their tests remain pending. Ubuntu's Verilator/g++/Make/Python setup has been checked; verify other tools before use. Follow core Phases 0–5 in order. The Tab5 milestones below have explicit dependencies; the retained VGA/demo path (Phases 6–7) does not block a portable demonstration.
 
 Tick the checkboxes in this file as tasks land.
 
@@ -62,13 +62,13 @@ The CPU order remains deliberate: correctness, board execution, UART, then pipel
 
 ## Progress dashboard
 
-Counted from the checkboxes in this file (November 6, 2026). Update this table whenever boxes
+Counted from the checkboxes in this file (November 7, 2026). Update this table whenever boxes
 are ticked.
 
 | Track | Tasks done | Gate | Status |
 | --- | :-: | --- | --- |
 | Planning package | 7 / 7 | Documents complete; not a hardware gate | ✅ IMPLEMENTED (documents) |
-| Phase 0: Fresh start | 1 / 6 | Not passed | 🚧 IN PROGRESS: skeleton only |
+| Phase 0: Fresh start | 5 / 6 | Not passed | 🚧 IN PROGRESS: only the GitHub Actions run remains (needs a push) |
 | Phase 1: Building blocks | 0 / 6 | Not passed | 📋 PLANNED |
 | Phase 2: Single-cycle CPU in simulation | 0 / 10 | Not passed | 📋 PLANNED |
 | Phase 3: On the board, running C | 0 / 9 | Not passed | 📋 PLANNED |
@@ -95,7 +95,7 @@ test must run and its evidence must be recorded (see the
 
 ## Planning package and current status
 
-- [x] Re-audit the actual checkout: skeleton and documents only; no working CPU, RAM, bus, UART, top-level or test infrastructure to assume.
+- [x] Re-audit the November 6 planning baseline: skeleton and documents only; no working CPU, RAM, bus, UART, top-level or test infrastructure to assume. Current Phase 0 progress is recorded below.
 - [x] Preserve the complete user proposal in [TAB5_REQUIREMENTS.md](TAB5_REQUIREMENTS.md), covering all 35 sections.
 - [x] Define FPGA/debug architecture, CPU contracts, memory ownership and resource targets in [TAB5_INTEGRATION.md](TAB5_INTEGRATION.md).
 - [x] Define the bounded, versioned protocol and retry/load rules in [DEBUG_PROTOCOL.md](DEBUG_PROTOCOL.md).
@@ -257,7 +257,7 @@ Every bug should be caught at the cheapest layer it can be. A wrong ALU result f
 | Observation and diagnostics | Torn captures, lost trace, wrong counts, false BIST/fault/reference claims | Atomic snapshots, known event programs, real hardware tests and independent expected results | T8–T12 |
 | Portable qualification | Laptop dependency, boot order, power/SD/link failure | Repeated cold boots and measured portable operation | T5, T13 |
 
-One command, `python3 scripts/run_tests.py`, runs every layer that works in simulation and prints a pass/fail summary.
+The planned `python3 scripts/run_tests.py` will run every layer that works in simulation and print a pass/fail summary. For now, the counter smoke test runs through Cursor's default Ctrl+Shift+B task; see [PHASE0_SMOKE_TEST.md](PHASE0_SMOKE_TEST.md).
 
 ## Build phases
 
@@ -270,11 +270,11 @@ That sequential rule applies to the core track through Phase 5 and each stated d
 A clean repo where every test and every bitstream can be rebuilt with one command.
 
 - [x] Repo skeleton: README, `.gitignore` for Vivado output, `.gitattributes` for consistent line endings, and the folders above.
-- [ ] Verilator smoke test in WSL: a tiny counter module and its testbench, run with one command.
-- [ ] `scripts/run_tests.py`: finds every testbench, builds and runs each with Verilator, and prints a pass/fail table.
-- [ ] `scripts/build.tcl`: a Vivado non-project build that reads `rtl/` and `fpga/basys3.xdc` and writes the bitstream plus timing and utilization reports.
-- [ ] Blink rebuilt through `build.tcl` and programmed onto the board, proving the scripted flow works end to end.
-- [ ] GitHub Actions workflow that installs Verilator and runs `run_tests.py` on every push, with a status badge in the README.
+- [x] Verilator smoke test in WSL: `counter.sv` and `counter_tb.sv` pass 25 checks through the default Cursor build task; intentional failure is detected. [Evidence and run instructions](PHASE0_SMOKE_TEST.md).
+- [x] `scripts/run_tests.py`: finds every testbench, builds and runs each with Verilator, and prints a pass/fail table. Verified with Verilator 5.020 (Ubuntu 24.04): `counter_tb` and `basys3_top_tb` pass; a wrong result, a build error and a bench that never prints `PASS` are each reported as failures with exit status 1.
+- [x] `scripts/build.tcl`: a Vivado non-project build that reads `rtl/` and `fpga/basys3.xdc` and writes the bitstream plus timing and utilization reports. Ran in Vivado 2025.2 (November 7, 2026): bitstream written, WNS +7.066 ns, WHS +0.268 ns, 42 registers.
+- [x] Blink rebuilt through `build.tcl` and programmed onto the board, proving the scripted flow works end to end. Programmed with `scripts/program.tcl` on November 7, 2026; LEDs count on the board. `tb/basys3_top_tb.sv` passes in simulation.
+- [ ] GitHub Actions workflow that installs Verilator and runs `run_tests.py` on every push, with a status badge in the README. *`.github/workflows/tests.yml` and the badge are written; not yet run on GitHub (needs a push).*
 
 **Gate:** `run_tests.py` passes in WSL and on GitHub Actions, and the scripted blink runs on the board.
 
@@ -657,7 +657,7 @@ After the core portable gates; prioritize by measured benefit rather than adding
 
 ## Smallest next implementation task
 
-Planning is integrated; the original skeleton task is complete. Next: verify Verilator inside WSL, add a tiny counter plus self-checking testbench, and prove one passing/failing smoke-test flow. Then build `scripts/run_tests.py`, the scripted Vivado blink flow and CI to pass Phase 0. No CPU/debug RTL or Tab5 application has been implemented by this documentation pass.
+`scripts/run_tests.py` passes in WSL. Next: run `scripts/build.tcl` in Vivado and program the blink with `scripts/program.tcl`, then push so the GitHub Actions workflow runs. When all three pass, record the evidence and tick the Phase 0 gate. CPU/debug RTL and Tab5 firmware remain pending.
 
 ---
 

@@ -22,6 +22,7 @@ flowchart TD
 | Document | Read it for | Kind |
 | --- | --- | --- |
 | [BUILD_PLAN.md](BUILD_PLAN.md) | Phases 0–7 and Tab5 milestones T0–T13, every gate, design decisions, memory map, test strategy, C flow, risks, open questions. **Its checkboxes are the record of progress.** | Plan |
+| [PHASE0_SMOKE_TEST.md](PHASE0_SMOKE_TEST.md) | Working Cursor task, counter behavior, 25 passing checks, deliberate failure, observed Ubuntu tool versions and output location | Simulation evidence |
 | [TAB5_INTEGRATION.md](TAB5_INTEGRATION.md) | What the FPGA and Tab5 each do, the debug-only Wishbone bus, RAM ownership, halt/step/breakpoint semantics, program loading, trace and counters, BIST and fault injection, block RAM budget | Architecture |
 | [DEBUG_PROTOCOL.md](DEBUG_PROTOCOL.md) | Packet framing, sessions and safe retries, status codes, the command table, payload layouts, capability bits and state machines | Interface specification |
 | [TAB5_FIRMWARE.md](TAB5_FIRMWARE.md) | Framework decision, firmware modules and tasks, data-provenance labels, screens, microSD layout, reproducible builds | Firmware design |
@@ -63,5 +64,5 @@ Two Markdown files are deliberately left unedited:
   passed gate.
 - Update the relevant document in the same change as any interface, architecture, tooling or
   workflow change.
-- Timing and utilization reports, photos and demo evidence will be saved here as they are
-  produced. None exist yet.
+- Phase 0 simulation evidence is in [PHASE0_SMOKE_TEST.md](PHASE0_SMOKE_TEST.md).
+  Timing and utilization reports, board photos and hardware demo evidence remain pending.
