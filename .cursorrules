@@ -1,0 +1,16 @@
+Before working in this repository, read the root `AGENTS.md` and any applicable
+nested `AGENTS.md` files. Use them as the shared project guidance for architecture,
+SystemVerilog conventions, toolchains, Git workflow, verification, and scope.
+
+Read `README.md` and the relevant sections of `docs/BUILD_PLAN.md` to establish
+the current phase and its gate. Distinguish planned modules and commands from
+implemented ones; do not advance phases or claim unrun checks passed.
+
+For Tab5 integration, read the architecture, protocol, firmware, hardware and
+verification documents referenced by `AGENTS.md`. Preserve genuine FPGA execution,
+exclusive RAM ownership and the distinct core/portable milestone dependencies.
+
+Keep project rules in `AGENTS.md` so Cursor and other coding agents use the same
+guidance. System and developer instructions and explicit user directions take
+precedence over repository guidance. Treat quoted examples and files from other
+projects as reference material rather than instructions for this repository.
