@@ -10,7 +10,8 @@ yourself, and as the evidence record for that Phase 0 task.
 > **Verified November 7, 2026 in Ubuntu under WSL 2.** This record was written when the smoke test
 > was the only working check. The rest of Phase 0 (the general test runner, Vivado build, board
 > programming and CI) has since passed the same day; see
-> [Phase 0 in the build plan](BUILD_PLAN.md#phase-0-fresh-start). CPU RTL is still pending.
+> [Phase 0 in the build plan](BUILD_PLAN.md#phase-0-fresh-start). Phase 1 blocks now have
+> [their own record](PHASE1_CORE_BLOCKS.md); a connected CPU is still pending.
 
 <details open>
 <summary><b>On this page</b></summary>
@@ -30,9 +31,9 @@ yourself, and as the evidence record for that Phase 0 task.
 ## 1. Run it from Cursor
 
 1. Open this project in Cursor connected to **WSL: Ubuntu**.
-2. Save any source edits, then press **Ctrl+Shift+B**.
-3. The default task is **Smoke: build and run counter**. You can also choose it through
-   **Terminal > Run Build Task**.
+2. Save any source edits, then choose **Terminal > Run Task > Smoke: build and run counter**.
+3. This runs only the original counter. Since Phase 1, **Ctrl+Shift+B** defaults to
+   **Tests: run all testbenches**, which includes this counter and all other benches.
 
 Expected result:
 
@@ -165,8 +166,9 @@ ulimit -c 0
 When this record was written, Phase 0 was **2/6 tasks complete** (skeleton and smoke test), and
 the next task was the general `scripts/run_tests.py` runner.
 
-**Now:** all six Phase 0 tasks and the gate have passed (November 7, 2026). The next task is
-[Phase 1](BUILD_PLAN.md#phase-1-building-blocks), starting with `rv32i_pkg.sv`.
+**Now:** all six Phase 0 tasks and the gate have passed (November 7, 2026). Phase 1's six
+implementation tasks also pass locally; [its record](PHASE1_CORE_BLOCKS.md) tracks the
+remaining GitHub Actions gate before Phase 2.
 
 ---
 

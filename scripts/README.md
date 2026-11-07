@@ -8,7 +8,9 @@ options, expected output and common errors.
 
 > [!NOTE]
 > **Status: 🚧 IN PROGRESS.** `run_tests.py`, `build.tcl` and `program.tcl` exist and passed
-> Phase 0 on November 7, 2026. `bin2mem.py` and `upload.py` remain **PLANNED**. Status labels
+> Phase 0 on November 7, 2026. `synth_blocks.tcl` (Phase 1 block synthesis check) exists but
+> is **NOT VERIFIED**: it has not been run in Vivado yet. `bin2mem.py` and `upload.py` remain
+> **PLANNED**. Status labels
 > are defined in the [root README](../README.md#2-project-status).
 
 <details open>
@@ -43,6 +45,7 @@ or by CI, with no Vivado project files stored in Git.
 | [`run_tests.py`](run_tests.py) | ✅ Exists | WSL | Find every testbench, build and run each with Verilator, print a pass/fail table | 0 |
 | [`build.tcl`](build.tcl) | ✅ Exists | Windows, Vivado | Non-project build that reads `rtl/` and `fpga/basys3.xdc`, writes the bitstream plus timing and utilization reports | 0 |
 | [`program.tcl`](program.tcl) | ✅ Exists | Windows, Vivado | Load a bitstream from `build.tcl` onto the Basys 3 over USB (JTAG) | 0 |
+| [`synth_blocks.tcl`](synth_blocks.tcl) | ⚠️ Exists, not yet run | Windows, Vivado | Synthesize each Phase 1 block on its own; fail on a latch; write per-block utilization reports | 1 |
 | `bin2mem.py` | 📋 Planned | WSL | Convert a compiled `.bin` into a `.mem` file for `$readmemh` | 3 |
 | `upload.py` | 📋 Planned | Windows or WSL | Optional: send a program over the USB UART to the boot-ROM recovery loader | 4 |
 
@@ -54,8 +57,9 @@ python3 scripts/bin2mem.py prog.bin prog.mem
 
 Its options are not designed yet; inspect the script before relying on this form.
 
-The **counter smoke test** also runs through the shared [Cursor task](../.vscode/tasks.json):
-in a **WSL: Ubuntu** window, press **Ctrl+Shift+B**. Its 25 passing checks and deliberate
+In a **WSL: Ubuntu** Cursor window, **Ctrl+Shift+B** runs the complete regression through
+the shared [task file](../.vscode/tasks.json). **Terminal > Run Task > Smoke: build and run
+counter** still selects the original counter-only task. Its 25 passing checks and deliberate
 failure check are recorded in [PHASE0_SMOKE_TEST.md](../docs/PHASE0_SMOKE_TEST.md).
 
 ---
@@ -95,7 +99,7 @@ python3 scripts/run_tests.py
 ```
 
 Expected result: a version line, one `running <name> ... PASS` line per bench, a results table
-and a final line such as `2/2 passed`. The exit status is nonzero if any test fails.
+and a final line such as `7/7 passed`. The exit status is nonzero if any test fails.
 
 | Option | What it does | Default |
 | --- | --- | --- |
@@ -115,6 +119,8 @@ How it decides:
 - **Verdict:** a test passes only when Verilator builds it, the simulation exits with status 0
   within the timeout, and its output contains a line starting with `PASS`. Otherwise it is
   reported as `FAIL`, `BUILD` or `TIMEOUT`.
+- **Detail column:** for a pass, the bench's `PASS` line; for a failure, the first `%Fatal`
+  line (the failed check's own message), else the first `%Error` or `%Warning`.
 
 > [!IMPORTANT]
 > A bench that finishes without printing `PASS` is treated as a failure, so a missing `$display`
@@ -154,6 +160,27 @@ What it does:
 
 Expected result: `== TIMING MET`. The Phase 0 blink build recorded WNS +7.066 ns and
 WHS +0.268 ns.
+
+Vivado also writes scratch files (`clockInfo.txt`, `.Xil/`, `dfx_runtime.txt`) into its working
+directory. The script changes into `build/vivado/` first, so they stay out of the repository root.
+
+> [!NOTE]
+> Synthesis only includes modules reachable from the top level. Until Phase 2 connects the CPU,
+> the Phase 1 blocks are read but **not synthesized** by this build.
+
+### Check the Phase 1 blocks: `synth_blocks.tcl`
+
+This optional check synthesizes `alu`, `branch_unit`, `decoder`, `imm_gen` and `regfile` one at
+a time, out of context (no pins, no top level):
+
+```bash
+vivado -mode batch -nojournal -nolog -source scripts/synth_blocks.tcl
+```
+
+Expected result: one summary line per block with its LUT, flip-flop, LUTRAM and latch counts,
+then `== ALL BLOCKS SYNTHESIZED, NO LATCHES`. Per-block reports go to `build/vivado/blocks/`.
+The script exits nonzero if a block fails to synthesize or infers a latch. These numbers
+describe each block alone, not a connected CPU.
 
 > [!WARNING]
 > If setup or hold slack is negative, the script prints `== TIMING FAILED: negative slack…` and

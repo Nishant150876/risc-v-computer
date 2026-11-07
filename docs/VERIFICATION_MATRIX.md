@@ -147,7 +147,7 @@ are coverage links, not completion checkboxes.
 | [REQ-31](TAB5_REQUIREMENTS.md#31-documentation-and-portfolio-requirements): portfolio/docs | Reproducible FPGA/firmware/program builds, verified claims and reports/video. | T13 evidence bundle, README reproduction review and architecture sheet. |
 | [REQ-32](TAB5_REQUIREMENTS.md#32-additional-features-that-could-be-added-later): extensions | SPI, watchpoints, triggered trace, richer reference/symbols remain ordered options. | Separate stretch backlog after the required portable gates. |
 | [REQ-33](TAB5_REQUIREMENTS.md#33-technical-constraints-and-important-design-decisions): constraints | Genuine FPGA execution, safe memory/clocking, accurate provenance, no cloud runtime. | Architecture/instruction rules; negative tests and T13 audit. |
-| [REQ-34](TAB5_REQUIREMENTS.md#34-what-i-want-you-to-do-with-my-existing-codebase): integration work | Audit, architecture, firmware selection, protocol/map, risks, roadmap and next task. | Planning package delivered; Phase 0 flow verified (counter smoke test, test runner, scripted build and CI); next implementation is Phase 1. |
+| [REQ-34](TAB5_REQUIREMENTS.md#34-what-i-want-you-to-do-with-my-existing-codebase): integration work | Audit, architecture, firmware selection, protocol/map, risks, roadmap and next task. | Planning package and Phase 0 flow delivered; Phase 1 blocks pass locally with their CI gate pending. No Tab5 milestone is claimed passed. |
 | [REQ-35](TAB5_REQUIREMENTS.md#35-final-vision): unified final vision | One coherent portable bring-up/diagnostics platform with independent proof. | T13 combined hardware/software acceptance and reproducibility. |
 
 ---

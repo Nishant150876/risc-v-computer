@@ -16,8 +16,8 @@ decisions every file must follow.
 | Where things stand (November 7, 2026) | |
 | --- | --- |
 | **Last gate passed** | ✅ Phase 0, November 7, 2026 |
-| **Current phase** | Phase 1: Building blocks (0 / 6 tasks) |
-| **Next task** | `rv32i_pkg.sv`; see [Smallest next implementation task](#15-smallest-next-implementation-task) |
+| **Current phase** | Phase 1: Building blocks (6 / 6 implemented; local pass; CI gate pending) |
+| **Next task** | Verify the new regression in GitHub Actions; see [Smallest next implementation task](#15-smallest-next-implementation-task) |
 | **Portable gates** | P1 (T5) and P2 (T13) not passed |
 
 <details open>
@@ -52,9 +52,11 @@ running C compiled with GCC.
 
 The November 6, 2026 restart now has a repository skeleton, planning documents and a **passed
 Phase 0** (November 7): a counter smoke test, the `run_tests.py` runner, scripted Vivado build
-and programming, a blink running on the board, and CI on GitHub Actions. CPU/debug RTL,
-firmware and their tests remain pending. Ubuntu's Verilator/g++/Make/Python setup and Vivado
-2025.2 have been checked; verify other tools before use.
+and programming, a blink running on the board, and CI on GitHub Actions. Phase 1 now has its
+shared package and five CPU blocks, with all seven local benches passing; its CI gate is
+pending. CPU integration/debug RTL and firmware remain planned. Ubuntu's
+Verilator/g++/Make/Python setup and Vivado 2025.2 have been checked; verify other tools
+before use.
 
 Follow core Phases 0–5 in order. The Tab5 milestones below have explicit dependencies; the
 retained VGA/demo path (Phases 6–7) does not block a portable demonstration.
@@ -122,7 +124,7 @@ are ticked.
 | --- | :-: | --- | --- |
 | Planning package | 7 / 7 | Documents complete; not a hardware gate | ✅ IMPLEMENTED (documents) |
 | Phase 0: Fresh start | 6 / 6 | ✅ Passed | ✅ DONE |
-| Phase 1: Building blocks | 0 / 6 | Not passed | 📋 PLANNED |
+| Phase 1: Building blocks | 6 / 6 | Local pass; CI pending | 🚧 Implementation complete |
 | Phase 2: Single-cycle CPU in simulation | 0 / 10 | Not passed | 📋 PLANNED |
 | Phase 3: On the board, running C | 0 / 9 | Not passed | 📋 PLANNED |
 | Phase 4: UART text to your laptop | 0 / 6 | Not passed | 📋 PLANNED |
@@ -342,7 +344,7 @@ risc-v-computer/
 │   ├── tests/      hand-written assembly tests, hazard zoo
 │   ├── riscv-tests/ official rv32ui suite (git submodule) + our env header
 │   └── programs/   fib, sieve, life, snake
-├── scripts/        run_tests.py, build.tcl, program.tcl, bin2mem.py, upload.py
+├── scripts/        run_tests.py, build.tcl, program.tcl, synth_blocks.tcl, bin2mem.py, upload.py
 ├── firmware/tab5/  ESP-IDF/LVGL touchscreen application
 ├── host/           Python protocol client, image preparation, reference tools
 ├── protocol/       versioned schemas and shared golden vectors
@@ -390,9 +392,9 @@ test takes minutes to fix; the same bug found on the board can take a day.
 
 > [!TIP]
 > `python3 scripts/run_tests.py` runs every testbench that works in simulation and prints a
-> pass/fail summary; GitHub Actions runs the same command on every push. The counter smoke test
-> also runs through Cursor's default Ctrl+Shift+B task; see
-> [PHASE0_SMOKE_TEST.md](PHASE0_SMOKE_TEST.md).
+> pass/fail summary; GitHub Actions runs the same command on every push. Cursor's default
+> Ctrl+Shift+B task now runs the full regression; the counter-only task remains available.
+> See [PHASE1_CORE_BLOCKS.md](PHASE1_CORE_BLOCKS.md).
 
 ---
 
@@ -408,7 +410,7 @@ concrete test that must pass before the next phase starts.
 | Phase | Goal | Tasks | Gate status |
 | --- | --- | :-: | --- |
 | [0](#phase-0-fresh-start) | One-command tests and bitstreams | 6 / 6 | ✅ Passed |
-| [1](#phase-1-building-blocks) | Reusable CPU blocks, each proven alone | 0 / 6 | ⬜ Next |
+| [1](#phase-1-building-blocks) | Reusable CPU blocks, each proven alone | 6 / 6 | Local pass; CI pending |
 | [2](#phase-2-single-cycle-cpu-in-simulation) | Single-cycle CPU in simulation | 0 / 10 | ⬜ |
 | [3](#phase-3-on-the-board-running-c) | Real C on real hardware | 0 / 9 | ⬜ |
 | [4](#phase-4-uart-text-to-your-laptop) | Text to a laptop | 0 / 6 | ⬜ |
@@ -440,21 +442,33 @@ concrete test that must pass before the next phase starts.
 ### Phase 1: Building blocks
 
 **Goal:** the parts every later version of the CPU reuses, each proven on its own.
-**Status:** 📋 0 / 6. **This is the current phase.**
+**Status:** 🚧 6 / 6 implemented and locally verified. **This is the current phase;
+its gate is pending GitHub Actions for these changes.**
 
-- [ ] `rv32i_pkg.sv`: opcodes, the ALU operation list, and the control-signal struct, shared by every module.
-- [ ] `alu.sv`: ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU.
-  - Test: tricky values (0, -1, the largest and smallest numbers, shifts of 31 and 32) plus 1,000 random inputs per operation against a reference model.
-- [ ] `regfile.sv`: 32 registers of 32 bits, 2 read ports, 1 write port, x0 always 0. It has a `BYPASS` switch: off for single-cycle (on, it would create a loop), on for the pipeline so a register being written back can be read in the same cycle.
+- [x] `rv32i_pkg.sv`: opcodes, the ALU operation list, and the control-signal struct, shared by every module.
+- [x] `alu.sv`: ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU.
+  - Test: tricky values (0, -1, the largest and smallest numbers, shifts of 31 and 32) plus 1,000 random inputs per operation against a reference model. Shift counts use five bits, so 32 means a zero-bit shift.
+- [x] `regfile.sv`: 32 registers of 32 bits, 2 read ports, 1 write port, x0 always 0. It has a `BYPASS` switch: off for single-cycle (on, it would create a loop), on for the pipeline so a register being written back can be read in the same cycle.
   - Test: every register written and read back, writes to x0 ignored, random sequences against a model.
-- [ ] `imm_gen.sv`: the I, S, B, U and J immediates, sign-extended.
+- [x] `imm_gen.sv`: the I, S, B, U and J immediates, sign-extended.
   - Test: hand-encoded instructions for each format, including negative and maximum values.
-- [ ] `decoder.sv`: turns opcode, funct3 and funct7 into control signals (ALU op, operand sources, register write, load/store size, branch type, jump, write-back source, illegal).
+- [x] `decoder.sv`: turns opcode, funct3 and funct7 into control signals (ALU op, operand sources, register write, load/store size, branch type, jump, write-back source, illegal).
   - Test: representative encodings of all 40 recognized base instructions check every control signal, including the documented FENCE/ECALL/EBREAK policy; unknown/reserved encodings raise illegal.
-- [ ] `branch_unit.sv`: BEQ, BNE, BLT, BGE, BLTU, BGEU.
+- [x] `branch_unit.sv`: BEQ, BNE, BLT, BGE, BLTU, BGEU.
   - Test: signed and unsigned edge cases, such as -1 vs 1, where the two disagree.
 
 > **Gate:** every Phase 1 testbench passes locally and in CI.
+
+Local result (November 7, 2026): **7/7 benches passed**, including both Phase 0 benches;
+Verilator `-Wall` clean. A same-day audit made the ALU and branch references independent of the
+RTL's `+`/`<` operators and confirmed that 20 deliberately injected bugs each make a bench fail.
+See [interfaces and recorded evidence](PHASE1_CORE_BLOCKS.md).
+
+> [!IMPORTANT]
+> **The gate is not passed yet:** GitHub Actions has not run on these local changes. The Vivado
+> blink build reads the new files but does not synthesize them (they are not connected to the
+> top); the optional [`synth_blocks.tcl`](../scripts/README.md#5-build-the-bitstream-buildtcl)
+> check does that and has not been run yet.
 
 ### Phase 2: Single-cycle CPU in simulation
 
@@ -942,15 +956,14 @@ scope:
 
 ## 15. Smallest next implementation task
 
-Phase 0 has passed: `run_tests.py`, `build.tcl`, the programmed blink and the GitHub Actions run
-are all recorded above. CPU/debug RTL and Tab5 firmware remain pending.
+Phase 0 has passed. All six [Phase 1](#phase-1-building-blocks) implementation tasks are now
+complete and pass local verification; see [PHASE1_CORE_BLOCKS.md](PHASE1_CORE_BLOCKS.md).
 
-**Next:** the first [Phase 1](#phase-1-building-blocks) task.
-
-1. Write `rtl/core/rv32i_pkg.sv`: opcodes, the ALU operation list and the control-signal struct.
-2. Then write `alu.sv` together with its self-checking testbench, in the same commit.
-3. Run `python3 scripts/run_tests.py` in WSL and let GitHub Actions run it on the push.
-4. Tick each box only when its work lands, and update the [progress dashboard](#2-progress-dashboard).
+**Next:** verify the updated regression in GitHub Actions through the authorized Git workflow.
+This task leaves the changes local; no commit, push or PR has been made. Keep the Phase 1 gate
+open until CI passes for this snapshot. Then Phase 2 can begin with next-PC logic, the LSU,
+memory timing proof and single-cycle integration. CPU/debug integration and Tab5 firmware
+remain pending.
 
 ---
 

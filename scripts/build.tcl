@@ -21,6 +21,10 @@ if {[llength $argv] >= 1} { set top [lindex $argv 0] }
 set repo   [file normalize [file join [file dirname [info script]] ..]]
 set outdir [file join $repo build vivado]
 file mkdir $outdir
+# Vivado writes scratch files (clockInfo.txt, .Xil/, dfx_runtime.txt) into the
+# working directory. Run from the ignored output folder so they never land in
+# the repository root. Every path below is absolute, so this is safe.
+cd $outdir
 
 # Collect sources: packages (*_pkg.sv) first, then everything else.
 proc find_sv {dir} {

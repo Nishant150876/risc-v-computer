@@ -11,14 +11,15 @@ memory and I/O, and a portable touchscreen debugger, running on a Digilent Basys
 | **Language** | SystemVerilog for all hardware and testbenches |
 | **Board** | Digilent Basys 3 (Xilinx Artix-7 FPGA) |
 | **Portable debugger** | M5Stack Tab5 touchscreen (ESP32-P4) |
-| **Current stage** | ✅ Phase 0 passed (November 7, 2026). Next: Phase 1, the CPU building blocks |
+| **Current stage** | Phase 1: all six tasks implemented; local tests pass; GitHub Actions gate pending |
 
 > [!IMPORTANT]
 > **Phase 0 is complete.** The build-and-test flow works end to end: `scripts/run_tests.py`
 > passes in WSL and on GitHub Actions, and a blink design was built with `scripts/build.tcl`
-> and programmed onto the board with `scripts/program.tcl`. **No CPU exists yet.** The CPU,
-> RAM, bus, UART, C runtime and Tab5 firmware are all still planned. The next task is
-> `rtl/core/rv32i_pkg.sv`, the first Phase 1 building block.
+> and programmed onto the board with `scripts/program.tcl`. **Phase 1's shared package and five
+> CPU blocks now pass local tests.** See [interfaces and evidence](docs/PHASE1_CORE_BLOCKS.md).
+> The Phase 1 gate still needs GitHub Actions for these changes. **No connected CPU exists yet:**
+> CPU integration, RAM, bus, UART, C runtime and Tab5 firmware remain planned.
 
 <details open>
 <summary><b>On this page</b></summary>
@@ -98,12 +99,14 @@ Every README in this repository uses the same four labels:
 | Repository rules ([AGENTS.md](AGENTS.md), `.gitignore`, `.gitattributes`) | ✅ IMPLEMENTED | Files at the repository root |
 | Build plan, architecture and protocol documents | ✅ IMPLEMENTED (documents only) | [docs/](docs/README.md) |
 | Phase 0 counter smoke test | ✅ IMPLEMENTED | `rtl/core/counter.sv` and `tb/counter_tb.sv` pass 25 checks; [smoke evidence](docs/PHASE0_SMOKE_TEST.md) |
-| Test runner `scripts/run_tests.py` | ✅ IMPLEMENTED | `counter_tb` and `basys3_top_tb` pass with Verilator 5.020 |
+| Test runner `scripts/run_tests.py` | ✅ IMPLEMENTED | All seven benches pass locally with Verilator 5.020 |
 | Vivado build and program scripts | ✅ IMPLEMENTED | `scripts/build.tcl` and `scripts/program.tcl` ran in Vivado 2025.2 |
 | Phase 0 blink top level and pins | ✅ IMPLEMENTED | `rtl/top/basys3_top.sv`, `fpga/basys3.xdc`; LEDs count on the board |
-| Continuous integration | ✅ IMPLEMENTED | `.github/workflows/tests.yml` runs `run_tests.py` on every push and pull request |
+| Continuous integration | ✅ IMPLEMENTED | `.github/workflows/tests.yml` runs `run_tests.py` on every push and pull request; the new Phase 1 run is pending publication |
 | **Phase 0 gate** | ✅ PASSED November 7, 2026 | [Phase 0](docs/BUILD_PLAN.md#phase-0-fresh-start) checkboxes |
-| CPU building blocks, single-cycle CPU, pipeline | 📋 PLANNED | Phases 1, 2 and 5 |
+| Shared package, ALU, register file, immediate generator, decoder, branch unit | ✅ IMPLEMENTED; local verification passed | [Phase 1 interfaces and tests](docs/PHASE1_CORE_BLOCKS.md) |
+| **Phase 1 gate** | 🚧 Local pass; CI pending | Six implementation tasks complete; GitHub Actions for this snapshot has not run |
+| Single-cycle CPU and pipeline | 📋 PLANNED | Phases 2 and 5 |
 | RAM, bus, board I/O, UART, VGA | 📋 PLANNED | Phases 2, 3, 4 and 6 |
 | C runtime (startup code, linker script, `mmio.h`, `printf`) | 📋 PLANNED | Phases 3 and 4 |
 | Tab5 firmware, debug protocol, debug and diagnostic hardware | 📋 PLANNED | Milestones T0–T13 |
@@ -162,7 +165,7 @@ python3 scripts/run_tests.py
 ```
 
 The runner finds every `tb/**/*_tb.sv`, builds each with Verilator, runs it, and prints a
-pass/fail table. Today it ends with `2/2 passed` (`counter_tb` and `basys3_top_tb`). The exit
+pass/fail table. Today it ends with `7/7 passed` (five CPU-block benches and both Phase 0 benches). The exit
 status is 0 only when every test passes.
 
 <details>
@@ -175,14 +178,14 @@ status is 0 only when every test passes.
 | `python3 scripts/run_tests.py --list` | List tests without running them |
 
 In **Cursor connected to WSL: Ubuntu**, save your edits, then press **Ctrl+Shift+B**. The default
-task, **Smoke: build and run counter**, compiles the counter and runs its self-checking testbench.
+task, **Tests: run all testbenches**, compiles and runs the complete local regression.
 Expected output:
 
 ```text
-PASS: counter reset, counting, wraparound and restart (25 checks)
+7/7 passed
 ```
 
-The shared task file also has **Tests: run all testbenches**, which runs `run_tests.py`.
+**Terminal > Run Task > Smoke: build and run counter** runs just the original counter.
 See [PHASE0_SMOKE_TEST.md](docs/PHASE0_SMOKE_TEST.md) for the smoke test's source files, terminal
 commands, tool versions and recorded checks.
 
@@ -225,8 +228,9 @@ For the full route from a C file to the board (planned), see
 <a id="architecture"></a>
 
 > [!NOTE]
-> Everything in this section is the **planned** design from the
+> System integration in this section is the **planned** design from the
 > [build plan](docs/BUILD_PLAN.md) and the [integration architecture](docs/TAB5_INTEGRATION.md).
+> The individual Phase 1 CPU blocks are already implemented and unit-tested.
 
 The CPU only ever does three things with the outside world: **fetch** instructions, **load**
 data and **store** data. The address alone decides where a load or store goes. That idea,
@@ -480,10 +484,10 @@ sequenceDiagram
 ## 7. How the project is tested
 
 > [!NOTE]
-> ✅ The Phase 0 tests pass: the [counter test](docs/PHASE0_SMOKE_TEST.md) (25 checks, and its
-> intentional failure returns a nonzero exit status) and the blink top-level test, both run by
-> `scripts/run_tests.py` locally and on GitHub Actions. The CPU and integration layers below
-> remain **PLANNED**.
+> ✅ All seven local tests pass: the Phase 0 counter/blink tests and the five
+> [Phase 1 block tests](docs/PHASE1_CORE_BLOCKS.md). The Phase 0 tests have passed on GitHub
+> Actions; CI for the new Phase 1 changes is pending. CPU program/integration tests remain
+> **PLANNED**.
 
 The rule is to catch each bug at the cheapest layer that can catch it. Each layer below starts
 in the phase shown.
@@ -538,7 +542,7 @@ flowchart LR
 | Phase | Goal | Gate | Status |
 | --- | --- | --- | --- |
 | **0** Fresh start | One-command tests and bitstreams | `run_tests.py` passes in WSL and on GitHub Actions; scripted blink runs on the board | ✅ passed November 7, 2026 |
-| **1** Building blocks | ALU, register file, immediates, decoder, branch unit | Every Phase 1 testbench passes locally and in CI | 📋 next |
+| **1** Building blocks | ALU, register file, immediates, decoder, branch unit | Every Phase 1 testbench passes locally and in CI | 🚧 6/6 implemented; local pass; CI pending |
 | **2** Single-cycle CPU | Every instruction in one clock, in simulation | All of rv32ui and every directed test pass | 📋 |
 | **3** Board and C | Real C on real hardware | A C program shows fib(switches) on the 7-segment; fib(20) = 6765 = `0x1A6D` | 📋 |
 | **4** UART | Text to a laptop | "hello, world", a live counter, and echo of typed text | 📋 |
@@ -556,13 +560,13 @@ prediction, CSRs and traps, formal verification, CoreMark, Tiny Tapeout) are in 
 
 | Layer | Tool or standard | Used for | Status |
 | --- | --- | --- | --- |
-| Hardware description | SystemVerilog | All RTL and testbenches | ✅ Phase 0 counter and blink; CPU planned |
+| Hardware description | SystemVerilog | All RTL and testbenches | ✅ Phase 0 and Phase 1 blocks; CPU integration planned |
 | Simulation | Verilator 5, in WSL | Self-checking tests, `-Wall` clean | ✅ verified with 5.020 |
 | Waveforms | GTKWave | Inspecting simulations | ❔ install NOT VERIFIED |
 | FPGA build | Xilinx Vivado, non-project Tcl mode, on Windows | Synthesis, place and route, bitstreams | ✅ verified with 2025.2 |
 | Software | RISC-V GCC, `-march=rv32i -mabi=ilp32`, no standard library | C and assembly programs | ❔ NOT VERIFIED; prefix may be `riscv32-` or `riscv64-unknown-elf-` |
 | Scripts | Python 3 (standard library preferred) and Vivado Tcl | Test runner, builds, image conversion, host client | ✅ `run_tests.py`, `build.tcl`, `program.tcl`; others planned |
-| CI | GitHub Actions | Run every test on every push | ✅ passing |
+| CI | GitHub Actions | Run every test on every push | Phase 0 passed; new Phase 1 run pending |
 | Tab5 firmware | ESP-IDF, FreeRTOS, LVGL | Touchscreen application | 📋 PLANNED; versions pinned after T0 |
 | Hardware | Digilent Basys 3 (Artix-7), M5Stack Tab5 (ESP32-P4) | Target boards | Exact revisions ❔ NOT VERIFIED |
 
@@ -578,19 +582,19 @@ risc-v-computer/
 ├── .github/workflows/   ✅ tests.yml: run_tests.py on every push and pull request
 ├── .vscode/tasks.json   ✅ Cursor tasks: counter smoke test, run all tests
 ├── rtl/                 Hardware (RTL): the circuits             → rtl/README.md
-│   ├── core/            ✅ counter.sv; planned CPU blocks, single-cycle CPU, pipeline
+│   ├── core/            ✅ counter + Phase 1 package/blocks; CPU integration planned
 │   ├── mem/             Unified RAM and optional boot ROM
 │   ├── io/              Bus decoder, board I/O, UART, VGA
 │   ├── debug/           Packet engine, Wishbone bridge, CPU control, trace
 │   ├── diag/            Memory/ALU self-test and fault hooks
 │   └── top/             ✅ basys3_top.sv (Phase 0 blink); later clocks, reset, CPU
-├── tb/                  ✅ counter_tb, basys3_top_tb; debug/ and diag/ suites → tb/README.md
+├── tb/                  ✅ seven benches; debug/ and diag/ reserved → tb/README.md
 ├── sw/                  Software that runs ON the CPU              → sw/README.md
 │   ├── common/          Startup code, linker script, mmio.h, printf
 │   ├── tests/           Directed assembly tests, hazard zoo
 │   ├── riscv-tests/     Reserved for the official rv32ui submodule
 │   └── programs/        C and assembly demo programs
-├── scripts/             ✅ run_tests.py, build.tcl, program.tcl  → scripts/README.md
+├── scripts/             ✅ run_tests.py, build.tcl, program.tcl, synth_blocks.tcl → scripts/README.md
 ├── fpga/                ✅ basys3.xdc: clock, reset button, LEDs → fpga/README.md
 ├── firmware/tab5/       Tab5 touchscreen application             → firmware/tab5/README.md
 ├── host/                Python debug client and prep tools       → host/README.md
@@ -623,6 +627,7 @@ Where generated files go:
 | [docs/README.md](docs/README.md) | Index of every design document and how they relate |
 | [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) | **Source of truth**: phases, gates, design decisions, memory map, risks, progress checkboxes |
 | [docs/PHASE0_SMOKE_TEST.md](docs/PHASE0_SMOKE_TEST.md) | The first passing simulation: Cursor task, counter checks, observed tool versions |
+| [docs/PHASE1_CORE_BLOCKS.md](docs/PHASE1_CORE_BLOCKS.md) | Implemented CPU-block interfaces, behavior and local verification; CI gate status |
 | [docs/TAB5_INTEGRATION.md](docs/TAB5_INTEGRATION.md) | Debug architecture, RAM ownership, halt/step/breakpoint contracts, loader, trace |
 | [docs/DEBUG_PROTOCOL.md](docs/DEBUG_PROTOCOL.md) | Packet format, sessions, retries, commands and status codes |
 | [docs/TAB5_FIRMWARE.md](docs/TAB5_FIRMWARE.md) | Tab5 framework choice, modules, screens, microSD layout |
@@ -723,5 +728,5 @@ M5Stack's documentation, all linked in [HARDWARE_CHECKLIST.md](docs/HARDWARE_CHE
 
 </details>
 
-**Next step:** read the [build plan](docs/BUILD_PLAN.md), then start
-[Phase 1](docs/BUILD_PLAN.md#phase-1-building-blocks).
+**Next step:** review the [Phase 1 record](docs/PHASE1_CORE_BLOCKS.md) and verify the updated
+regression in GitHub Actions. Phase 2 starts only after that gate passes.
